@@ -22,13 +22,22 @@
                 <p><kbd>Right Click</kbd> A tile to <strong>Remove</strong></p>
             </div>
             
-            <div class="button-group">
+            <div class="button-group" id="desktop-controls">
                 <button id="export-btn" class="success-btn">Export Image</button>
                 <button id="clear-btn" class="danger-btn">Clear All</button>
             </div>
         </header>
 
-        <div id="lawn" class="lawn-grid"></div>
+        <section class="workspace">
+            <div class="mobile-top-bar" aria-label="Mobile tile actions">
+                <button id="mobile-place-btn" class="mobile-tool-btn is-active" data-mode="place">Place</button>
+                <button id="mobile-rotate-btn" class="mobile-tool-btn" data-mode="rotate">Rotate</button>
+                <button id="mobile-remove-btn" class="mobile-tool-btn" data-mode="remove">Remove</button>
+            </div>
+
+            <div id="lawn" class="lawn-grid"></div>
+            <div id="mobile-export-slot" class="mobile-export-slot" aria-live="polite"></div>
+        </section>
     </main>
 
 </body>

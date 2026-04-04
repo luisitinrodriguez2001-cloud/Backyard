@@ -19,8 +19,34 @@ document.addEventListener("DOMContentLoaded", () => {
     const lawn = document.getElementById('lawn');
     const clearBtn = document.getElementById('clear-btn');
     const exportBtn = document.getElementById('export-btn');
+    const desktopControls = document.getElementById('desktop-controls');
+    const mobileExportSlot = document.getElementById('mobile-export-slot');
+    const mobileToolButtons = document.querySelectorAll('.mobile-tool-btn');
+    let mobileToolMode = 'place';
     const GRID_SIZE = 10;
     const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
+
+    function syncExportButtonLocation() {
+        if (document.body.classList.contains('mobile-mode')) {
+            mobileExportSlot.appendChild(exportBtn);
+        } else {
+            desktopControls.prepend(exportBtn);
+        }
+    }
+
+    function setMobileToolMode(nextMode) {
+        mobileToolMode = nextMode;
+        mobileToolButtons.forEach((button) => {
+            button.classList.toggle('is-active', button.dataset.mode === nextMode);
+        });
+    }
+
+    mobileToolButtons.forEach((button) => {
+        button.addEventListener('click', () => setMobileToolMode(button.dataset.mode));
+    });
+
+    mobileMediaQuery.addEventListener('change', syncExportButtonLocation);
+    syncExportButtonLocation();
 
     // Build the initial grid
     function buildGrid() {
@@ -39,7 +65,34 @@ document.addEventListener("DOMContentLoaded", () => {
     lawn.addEventListener('click', (e) => {
         const target = e.target;
 
-        // Place a tile
+        const isMobileMode = document.body.classList.contains('mobile-mode');
+
+        if (isMobileMode && mobileToolMode === 'remove') {
+            if (target.classList.contains('tile')) {
+                target.remove();
+            } else if (target.classList.contains('cell') && target.children.length > 0) {
+                target.innerHTML = '';
+            }
+            return;
+        }
+
+        if (isMobileMode && mobileToolMode === 'place') {
+            if (target.classList.contains('cell') && target.children.length === 0) {
+                const tile = document.createElement('div');
+                tile.classList.add('tile');
+                tile.dataset.rotation = 0;
+                target.appendChild(tile);
+            }
+            return;
+        }
+
+        if (isMobileMode && mobileToolMode === 'rotate') {
+            if (!target.classList.contains('tile')) {
+                return;
+            }
+        }
+
+        // Place a tile (desktop default + mobile place mode)
         if (target.classList.contains('cell') && target.children.length === 0) {
             const tile = document.createElement('div');
             tile.classList.add('tile');
