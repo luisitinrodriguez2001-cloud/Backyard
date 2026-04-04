@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deck Tile Designer</title>
+    
+    <link rel="stylesheet" href="styles.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+    <main class="container">
+        <header class="ui-panel">
+            <h1>Deck Tile Designer</h1>
+            <div class="instructions">
+                <p><kbd>Left Click</kbd> Empty space to <strong>Place</strong></p>
+                <p><kbd>Left Click</kbd> A tile to <strong>Rotate</strong></p>
+                <p><kbd>Right Click</kbd> A tile to <strong>Remove</strong></p>
+            </div>
+            
+            <div class="button-group">
+                <button id="export-btn" class="success-btn">Export Image</button>
+                <button id="clear-btn" class="danger-btn">Clear All</button>
+            </div>
+        </header>
+
+        <div id="lawn" class="lawn-grid"></div>
+    </main>
+
+</body>
+</html>
