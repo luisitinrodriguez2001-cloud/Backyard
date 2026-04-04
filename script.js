@@ -1,4 +1,21 @@
 document.addEventListener("DOMContentLoaded", () => {
+    const mobileMediaQuery = window.matchMedia('(max-width: 900px)');
+    const hasTouchCapability = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+    const userAgent = navigator.userAgent;
+    const isMobileAppleDevice = /iPhone|iPad|iPod/.test(userAgent)
+        || (/Macintosh/.test(userAgent) && hasTouchCapability);
+    const applyMobileMode = () => {
+        const isMobileFormFactor = mobileMediaQuery.matches || hasTouchCapability;
+        const hasSafari = /Safari/.test(userAgent);
+        const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS/.test(userAgent);
+        const isMobileSafari = isMobileFormFactor && isMobileAppleDevice && hasSafari && !isOtherIOSBrowser;
+
+        document.body.classList.toggle('mobile-mode', isMobileSafari);
+    };
+
+    applyMobileMode();
+    mobileMediaQuery.addEventListener('change', applyMobileMode);
+
     const lawn = document.getElementById('lawn');
     const clearBtn = document.getElementById('clear-btn');
     const exportBtn = document.getElementById('export-btn');
