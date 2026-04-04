@@ -23,6 +23,12 @@ body {
     max-width: 1200px;
 }
 
+.workspace {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
 /* UI Panel Styling */
 .ui-panel {
     background: #334155;
@@ -117,6 +123,11 @@ button:active {
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+.mobile-top-bar,
+.mobile-export-slot {
+    display: none;
+}
+
 /* Lawn Grid System */
 .lawn-grid {
     display: grid;
@@ -184,15 +195,84 @@ button:active {
     pointer-events: auto;
     transition: rotate 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}    
-    /* Animate rotate to prevent overriding the popIn scale */
-    transition: rotate 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    
-    /* Entry animation uses scale */
-    animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes popIn {
     0% { scale: 0.5; opacity: 0; }
     100% { scale: 1; opacity: 1; }
+}
+
+body.mobile-mode {
+    --mobile-grid-space: calc(100vw - 2rem);
+    --mobile-cell-size: calc((var(--mobile-grid-space) - 24px - 12px) / 10);
+    align-items: flex-start;
+    padding: 1rem;
+}
+
+body.mobile-mode .container {
+    width: 100%;
+    max-width: none;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+body.mobile-mode .ui-panel {
+    width: 100%;
+    padding: 1rem;
+}
+
+body.mobile-mode .instructions {
+    display: none;
+}
+
+body.mobile-mode .workspace {
+    width: 100%;
+    gap: 0.75rem;
+}
+
+body.mobile-mode .mobile-top-bar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    padding: 0.4rem;
+    background: #334155;
+    border: 1px solid #475569;
+    border-radius: 12px;
+}
+
+body.mobile-mode .mobile-tool-btn {
+    background: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font-size: 0.95rem;
+    padding: 0.7rem 0.3rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.mobile-mode .mobile-tool-btn.is-active {
+    background: linear-gradient(180deg, #0ea5e9, #2563eb);
+    color: #fff;
+    border-color: rgba(147, 197, 253, 0.8);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+body.mobile-mode .lawn-grid {
+    width: var(--mobile-grid-space);
+    max-width: 100%;
+    margin: 0 auto;
+    grid-template-columns: repeat(10, minmax(0, var(--mobile-cell-size)));
+    grid-template-rows: repeat(10, minmax(0, var(--mobile-cell-size)));
+}
+
+body.mobile-mode .mobile-export-slot {
+    display: block;
+    width: 100%;
+}
+
+body.mobile-mode .mobile-export-slot .success-btn {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.95rem 1rem;
+    border-radius: 10px;
 }
