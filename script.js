@@ -26,6 +26,18 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentMobileAction = 'place';
     const GRID_SIZE = 10;
     const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
+    
+    function setTileRotation(tile, rotation) {
+        tile.dataset.rotation = rotation;
+        tile.style.setProperty('--tile-rotation', `${rotation}deg`);
+    }
+
+    function createTile() {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        setTileRotation(tile, 0);
+        return tile;
+    }
 
     function syncExportButtonLocation() {
         if (document.body.classList.contains('mobile-mode')) {
@@ -71,10 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isMobileSafari) {
             if (currentMobileAction === 'place') {
                 if (target.classList.contains('cell') && target.children.length === 0) {
-                    const tile = document.createElement('div');
-                    tile.classList.add('tile');
-                    tile.dataset.rotation = 0;
-                    target.appendChild(tile);
+                    target.appendChild(createTile());
                 }
                 return;
             }
@@ -87,8 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const currentRotation = parseInt(target.dataset.rotation || 0, 10);
                 const newRotation = currentRotation + 90;
 
-                target.dataset.rotation = newRotation;
-                target.style.rotate = `${newRotation}deg`;
+                setTileRotation(target, newRotation);
                 return;
             }
 
@@ -104,10 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Place a tile (desktop default)
         if (target.classList.contains('cell') && target.children.length === 0) {
-            const tile = document.createElement('div');
-            tile.classList.add('tile');
-            tile.dataset.rotation = 0;
-            target.appendChild(tile);
+            target.appendChild(createTile());
         }
 
         // Rotate a tile
@@ -115,8 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const currentRotation = parseInt(target.dataset.rotation || 0, 10);
             const newRotation = currentRotation + 90;
 
-            target.dataset.rotation = newRotation;
-            target.style.rotate = `${newRotation}deg`; // Using standard 'rotate' CSS property
+            setTileRotation(target, newRotation);
         }
     });
 
