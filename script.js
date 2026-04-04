@@ -4,11 +4,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const userAgent = navigator.userAgent;
     const isMobileAppleDevice = /iPhone|iPad|iPod/.test(userAgent)
         || (/Macintosh/.test(userAgent) && hasTouchCapability);
+    let isMobileSafari = false;
     const applyMobileMode = () => {
         const isMobileFormFactor = mobileMediaQuery.matches || hasTouchCapability;
         const hasSafari = /Safari/.test(userAgent);
         const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS/.test(userAgent);
-        const isMobileSafari = isMobileFormFactor && isMobileAppleDevice && hasSafari && !isOtherIOSBrowser;
+        isMobileSafari = isMobileFormFactor && isMobileAppleDevice && hasSafari && !isOtherIOSBrowser;
 
         document.body.classList.toggle('mobile-mode', isMobileSafari);
     };
@@ -22,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const desktopControls = document.getElementById('desktop-controls');
     const mobileExportSlot = document.getElementById('mobile-export-slot');
     const mobileToolButtons = document.querySelectorAll('.mobile-tool-btn');
-    let mobileToolMode = 'place';
+    let currentMobileAction = 'place';
     const GRID_SIZE = 10;
     const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
 
@@ -34,16 +35,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function setMobileToolMode(nextMode) {
-        mobileToolMode = nextMode;
+    function setCurrentMobileAction(nextAction) {
+        currentMobileAction = nextAction;
         mobileToolButtons.forEach((button) => {
-            button.classList.toggle('is-active', button.dataset.mode === nextMode);
+            button.classList.toggle('is-active', button.dataset.mode === nextAction);
         });
     }
 
     mobileToolButtons.forEach((button) => {
-        button.addEventListener('click', () => setMobileToolMode(button.dataset.mode));
+        button.addEventListener('click', () => setCurrentMobileAction(button.dataset.mode));
     });
+
+    setCurrentMobileAction(currentMobileAction);
 
     mobileMediaQuery.addEventListener('change', syncExportButtonLocation);
     syncExportButtonLocation();
@@ -65,46 +68,53 @@ document.addEventListener("DOMContentLoaded", () => {
     lawn.addEventListener('click', (e) => {
         const target = e.target;
 
-        const isMobileMode = document.body.classList.contains('mobile-mode');
-
-        if (isMobileMode && mobileToolMode === 'remove') {
-            if (target.classList.contains('tile')) {
-                target.remove();
-            } else if (target.classList.contains('cell') && target.children.length > 0) {
-                target.innerHTML = '';
-            }
-            return;
-        }
-
-        if (isMobileMode && mobileToolMode === 'place') {
-            if (target.classList.contains('cell') && target.children.length === 0) {
-                const tile = document.createElement('div');
-                tile.classList.add('tile');
-                tile.dataset.rotation = 0;
-                target.appendChild(tile);
-            }
-            return;
-        }
-
-        if (isMobileMode && mobileToolMode === 'rotate') {
-            if (!target.classList.contains('tile')) {
+        if (isMobileSafari) {
+            if (currentMobileAction === 'place') {
+                if (target.classList.contains('cell') && target.children.length === 0) {
+                    const tile = document.createElement('div');
+                    tile.classList.add('tile');
+                    tile.dataset.rotation = 0;
+                    target.appendChild(tile);
+                }
                 return;
             }
+
+            if (currentMobileAction === 'rotate') {
+                if (!target.classList.contains('tile')) {
+                    return;
+                }
+
+                const currentRotation = parseInt(target.dataset.rotation || 0, 10);
+                const newRotation = currentRotation + 90;
+
+                target.dataset.rotation = newRotation;
+                target.style.rotate = `${newRotation}deg`;
+                return;
+            }
+
+            if (currentMobileAction === 'remove') {
+                if (target.classList.contains('tile')) {
+                    target.remove();
+                } else if (target.classList.contains('cell') && target.children.length > 0) {
+                    target.innerHTML = '';
+                }
+            }
+            return;
         }
 
-        // Place a tile (desktop default + mobile place mode)
+        // Place a tile (desktop default)
         if (target.classList.contains('cell') && target.children.length === 0) {
             const tile = document.createElement('div');
             tile.classList.add('tile');
             tile.dataset.rotation = 0;
             target.appendChild(tile);
         }
-        
+
         // Rotate a tile
         else if (target.classList.contains('tile')) {
-            let currentRotation = parseInt(target.dataset.rotation || 0, 10);
-            let newRotation = currentRotation + 90;
-            
+            const currentRotation = parseInt(target.dataset.rotation || 0, 10);
+            const newRotation = currentRotation + 90;
+
             target.dataset.rotation = newRotation;
             target.style.rotate = `${newRotation}deg`; // Using standard 'rotate' CSS property
         }
@@ -112,13 +122,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Handle Removal (Right Clicks)
     lawn.addEventListener('contextmenu', (e) => {
+        if (isMobileSafari) {
+            return;
+        }
+
         e.preventDefault();
         const target = e.target;
 
         // Clicked directly on the tile
         if (target.classList.contains('tile')) {
             target.remove();
-        } 
+        }
         // Clicked on the cell holding the tile
         else if (target.classList.contains('cell') && target.children.length > 0) {
             target.innerHTML = '';
