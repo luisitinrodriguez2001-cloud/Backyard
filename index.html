@@ -2,19 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Deck Tile Designer</title>
     
     <link rel="stylesheet" href="styles.css">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <script src="script.js" defer></script>
 </head>
 <body>
 
     <main class="container">
-        <header class="ui-panel">
+        <aside class="ui-panel desktop-panel">
             <h1>Deck Tile Designer</h1>
             <div class="instructions">
                 <p><kbd>Left Click</kbd> Empty space to <strong>Place</strong></p>
@@ -23,12 +21,26 @@
             </div>
             
             <div class="button-group">
-                <button id="export-btn" class="success-btn">Export Image</button>
-                <button id="clear-btn" class="danger-btn">Clear All</button>
+                <button class="success-btn export-btn">Export Image</button>
+                <button class="danger-btn clear-btn">Clear All</button>
             </div>
-        </header>
+        </aside>
 
-        <div id="lawn" class="lawn-grid"></div>
+        <div class="main-area">
+            
+            <div class="mobile-toolbar mobile-only">
+                <button class="mode-btn active" data-mode="place">Place</button>
+                <button class="mode-btn" data-mode="rotate">Rotate</button>
+                <button class="mode-btn" data-mode="remove">Remove</button>
+            </div>
+
+            <div id="lawn" class="lawn-grid"></div>
+
+            <div class="button-group mobile-only bottom-actions">
+                <button class="success-btn export-btn">Export</button>
+                <button class="danger-btn clear-btn">Clear</button>
+            </div>
+        </div>
     </main>
 
 </body>
