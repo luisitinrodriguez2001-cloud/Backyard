@@ -275,9 +275,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
     }
 
+    function bindMediaQueryChangeListener(mediaQueryList, handler) {
+        if (typeof mediaQueryList.addEventListener === 'function') {
+            mediaQueryList.addEventListener('change', handler);
+            return;
+        }
+
+        if (typeof mediaQueryList.addListener === 'function') {
+            mediaQueryList.addListener(handler);
+        }
+    }
+
     applyMobileMode();
-    mobileMediaQuery.addEventListener('change', applyMobileMode);
-    mobileMediaQuery.addEventListener('change', syncExportButtonLocation);
+    bindMediaQueryChangeListener(mobileMediaQuery, applyMobileMode);
+    bindMediaQueryChangeListener(mobileMediaQuery, syncExportButtonLocation);
 
     mobileToolButtons.forEach((button) => {
         button.addEventListener('click', () => setCurrentMobileAction(button.dataset.mode));
