@@ -1,8 +1,11 @@
-/* Base Reset & Typography */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+:root {
+    --cell-size: 18px;
 }
 
 body {
@@ -18,29 +21,29 @@ body {
 
 .container {
     display: flex;
-    gap: 3rem;
+    gap: 2rem;
     align-items: flex-start;
-    max-width: 1200px;
+    max-width: 1400px;
 }
 
 .workspace {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    max-height: calc(100vh - 4rem);
 }
 
-/* UI Panel Styling */
 .ui-panel {
     background: #334155;
-    padding: 2rem;
+    padding: 1.5rem;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    width: 300px;
+    width: 320px;
 }
 
 .ui-panel h1 {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
     color: #e2e8f0;
     border-bottom: 2px solid #475569;
     padding-bottom: 0.5rem;
@@ -49,12 +52,12 @@ body {
 .instructions {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
 }
 
 .instructions p {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: #cbd5e1;
     display: flex;
     align-items: center;
@@ -64,27 +67,19 @@ body {
 kbd {
     background-color: #0f172a;
     color: #38bdf8;
-    padding: 0.2rem 0.6rem;
+    padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-family: monospace;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     border: 1px solid #475569;
-    box-shadow: 0 2px 0 #0f172a;
-}
-
-/* Buttons */
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 }
 
 button {
     width: 100%;
-    padding: 0.8rem;
+    padding: 0.75rem;
     border: none;
-    border-radius: 6px;
-    font-size: 1rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -94,6 +89,57 @@ button:active {
     transform: translateY(1px);
 }
 
+.primary-btn {
+    background-color: #0ea5e9;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.primary-btn:hover {
+    background-color: #0284c7;
+}
+
+.material-palette {
+    display: none;
+    margin-bottom: 1rem;
+}
+
+body.backyard-mode .material-palette {
+    display: block;
+}
+
+.material-palette h2 {
+    font-size: 0.95rem;
+    margin-bottom: 0.6rem;
+    color: #bfdbfe;
+}
+
+.palette-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.palette-btn {
+    background: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid #475569;
+    padding: 0.55rem;
+    font-size: 0.84rem;
+}
+
+.palette-btn.is-active {
+    border-color: #60a5fa;
+    background: #1d4ed8;
+    color: #fff;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
 .success-btn {
     background-color: #10b981;
     color: white;
@@ -101,15 +147,11 @@ button:active {
 
 .success-btn:hover {
     background-color: #059669;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .success-btn:disabled {
     background-color: #6ee7b7;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
 }
 
 .danger-btn {
@@ -117,10 +159,126 @@ button:active {
     color: white;
 }
 
-.danger-btn:hover {
-    background-color: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+.grid-shell {
+    --grid-cols: 40;
+    --grid-rows: 60;
+    position: relative;
+    padding: 12px;
+    border-radius: 12px;
+    background: #1f2937;
+    border: 4px solid #111827;
+    overflow: auto;
+    max-height: calc(100vh - 7rem);
+    max-width: min(90vw, 900px);
+}
+
+.lawn-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--grid-cols), var(--cell-size));
+    grid-template-rows: repeat(var(--grid-rows), var(--cell-size));
+    background-color: #2d4c1e;
+    background-image:
+        radial-gradient(#3a5e28 15%, transparent 16%),
+        radial-gradient(#3a5e28 15%, transparent 16%);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.cell {
+    width: 100%;
+    height: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    cursor: pointer;
+}
+
+.cell:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.feature {
+    width: 100%;
+    height: 100%;
+}
+
+.deck-feature {
+    background-image:
+        linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12)),
+        repeating-linear-gradient(-45deg, #b87451 0 11px, #221814 11px 14px);
+}
+
+.concrete-feature {
+    background-image: radial-gradient(circle at 8px 8px, rgba(255,255,255,0.2) 0 1px, transparent 2px),
+        linear-gradient(145deg, #a8b0ba, #7b8794);
+}
+
+.landscaping-feature {
+    background-image: repeating-linear-gradient(45deg, #3f6212 0 8px, #365314 8px 16px);
+}
+
+.sand-feature {
+    background-image: radial-gradient(circle at 10px 10px, rgba(255,255,255,0.15) 0 1px, transparent 2px),
+        linear-gradient(145deg, #facc15, #eab308);
+}
+
+.seat-feature {
+    background: linear-gradient(180deg, #111827 0 55%, #0f172a 55% 100%);
+    border: 1px solid #374151;
+}
+
+.cell.has-door-top::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: 4px;
+    background: linear-gradient(90deg, #fb7185, #f59e0b, #10b981, #0ea5e9);
+    border-radius: 6px;
+}
+
+.ruler {
+    display: none;
+    position: absolute;
+    color: #bfdbfe;
+    font-size: 0.65rem;
+    pointer-events: none;
+}
+
+body.show-measurements .ruler {
+    display: grid;
+}
+
+.top-ruler {
+    top: -18px;
+    left: 12px;
+    right: 12px;
+    grid-template-columns: repeat(var(--grid-cols), var(--cell-size));
+    text-align: center;
+}
+
+.left-ruler {
+    left: -18px;
+    top: 12px;
+    bottom: 12px;
+    grid-template-rows: repeat(var(--grid-rows), var(--cell-size));
+    align-items: center;
+    text-align: center;
+}
+
+.grid-shell::after {
+    display: none;
+    content: 'Each square = 1ft × 1ft';
+    position: absolute;
+    bottom: -24px;
+    right: 2px;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+}
+
+body.show-measurements .grid-shell::after {
+    display: block;
 }
 
 .mobile-top-bar,
@@ -128,85 +286,8 @@ button:active {
     display: none;
 }
 
-/* Lawn Grid System */
-.lawn-grid {
-    display: grid;
-    grid-template-columns: repeat(10, 60px);
-    grid-template-rows: repeat(10, 60px);
-    gap: 0; /* Ensures flush tile connections */
-    
-    background-color: #2d4c1e;
-    background-image: 
-        radial-gradient(#3a5e28 15%, transparent 16%), 
-        radial-gradient(#3a5e28 15%, transparent 16%);
-    background-size: 20px 20px;
-    background-position: 0 0, 10px 10px;
-    
-    padding: 12px;
-    border-radius: 12px;
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.6), 0 20px 40px rgba(0,0,0,0.4);
-    border: 6px solid #1a2e11;
-}
-
-/* Individual Grid Cells */
-.cell {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.05); 
-    cursor: pointer;
-    position: relative;
-    transition: background-color 0.2s;
-}
-
-.cell:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Deck Tile Texture and Animation */
-.tile {
-    --tile-rotation: 0deg;
-    width: 100%;
-    height: 100%;
-    
-    /* Mathematically perfect symmetrical gradient with a CENTER GAP.
-       6 Slats (~13.33% each) + 5 Gaps (4% each) = 100%.
-       The center gap perfectly spans 48% to 52%, bisecting the tile exactly from corner to corner.
-    */
-    background-image: 
-        linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.1) 100%),
-        linear-gradient(
-            -45deg,
-            #b87451 0%, #b87451 13.333%,     /* Slat 1 (Corner) */
-            #221814 13.333%, #221814 17.333%, /* Gap 1 */
-            #b87451 17.333%, #b87451 30.667%, /* Slat 2 */
-            #221814 30.667%, #221814 34.667%, /* Gap 2 */
-            #b87451 34.667%, #b87451 48%,     /* Slat 3 */
-            #221814 48%, #221814 52%,         /* Gap 3 (TRUE CENTER LINE) */
-            #b87451 52%, #b87451 65.333%,     /* Slat 4 */
-            #221814 65.333%, #221814 69.333%, /* Gap 4 */
-            #b87451 69.333%, #b87451 82.667%, /* Slat 5 */
-            #221814 82.667%, #221814 86.667%, /* Gap 5 */
-            #b87451 86.667%, #b87451 100%     /* Slat 6 (Corner) */
-        );
-    background-color: #221814;
-    
-    pointer-events: auto;
-    transform: rotate(var(--tile-rotation));
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes popIn {
-    0% { scale: 0.5; opacity: 0; }
-    100% { scale: 1; opacity: 1; }
-}
-
 body.mobile-mode {
-    --mobile-grid-space: calc(100vw - 2rem);
-    --mobile-cell-size: calc((var(--mobile-grid-space) - 24px - 12px) / 10);
+    --cell-size: 14px;
     align-items: flex-start;
     padding: 1rem;
 }
@@ -223,10 +304,6 @@ body.mobile-mode .ui-panel {
     padding: 1rem;
 }
 
-body.mobile-mode .instructions {
-    display: none;
-}
-
 body.mobile-mode .workspace {
     width: 100%;
     gap: 0.75rem;
@@ -234,7 +311,7 @@ body.mobile-mode .workspace {
 
 body.mobile-mode .mobile-top-bar {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
     padding: 0.4rem;
     background: #334155;
@@ -247,34 +324,17 @@ body.mobile-mode .mobile-tool-btn {
     color: #cbd5e1;
     border: 1px solid transparent;
     border-radius: 9px;
-    font-size: 0.95rem;
-    padding: 0.7rem 0.3rem;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    font-size: 0.9rem;
+    padding: 0.65rem 0.3rem;
 }
 
 body.mobile-mode .mobile-tool-btn.is-active {
     background: linear-gradient(180deg, #0ea5e9, #2563eb);
     color: #fff;
     border-color: rgba(147, 197, 253, 0.8);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-}
-
-body.mobile-mode .lawn-grid {
-    width: var(--mobile-grid-space);
-    max-width: 100%;
-    margin: 0 auto;
-    grid-template-columns: repeat(10, minmax(0, var(--mobile-cell-size)));
-    grid-template-rows: repeat(10, minmax(0, var(--mobile-cell-size)));
 }
 
 body.mobile-mode .mobile-export-slot {
     display: block;
     width: 100%;
-}
-
-body.mobile-mode .mobile-export-slot .success-btn {
-    width: 100%;
-    font-size: 1rem;
-    padding: 0.95rem 1rem;
-    border-radius: 10px;
 }
