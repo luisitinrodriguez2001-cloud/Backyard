@@ -3,39 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deck Tile Designer</title>
-    
+    <title>Backyard Planner</title>
+
     <link rel="stylesheet" href="styles.css">
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
+
     <script src="script.js" defer></script>
 </head>
 <body>
 
     <main class="container">
         <header class="ui-panel">
-            <h1>Deck Tile Designer</h1>
-            <div class="instructions">
-                <p><kbd>Left Click</kbd> Empty space to <strong>Place</strong></p>
-                <p><kbd>Left Click</kbd> A tile to <strong>Rotate</strong></p>
-                <p><kbd>Right Click</kbd> A tile to <strong>Remove</strong></p>
-            </div>
-            
-            <div class="button-group" id="desktop-controls">
-                <button id="export-btn" class="success-btn">Export Image</button>
-                <button id="clear-btn" class="danger-btn">Clear All</button>
-            </div>
+            <h1>Backyard Planner</h1>
+            <p class="panel-copy">Each square equals <strong>1ft × 1ft</strong>. Pick a material and click cells to paint your layout.</p>
+
+            <section class="tool-section" aria-label="material selection">
+                <h2>Materials</h2>
+                <div class="material-grid" id="material-grid"></div>
+            </section>
+
+            <section class="tool-section" aria-label="planner actions">
+                <h2>Actions</h2>
+                <div class="button-group" id="desktop-controls">
+                    <button id="load-sketch-btn" class="primary-btn">Load Sketch Layout</button>
+                    <button id="toggle-measurements-btn" class="secondary-btn">Hide Measurements</button>
+                    <button id="export-btn" class="success-btn">Export Image</button>
+                    <button id="clear-btn" class="danger-btn">Clear All</button>
+                </div>
+            </section>
         </header>
 
         <section class="workspace">
-            <div class="mobile-top-bar" aria-label="Mobile tile actions">
-                <button id="mobile-place-btn" class="mobile-tool-btn is-active" data-mode="place">Place</button>
-                <button id="mobile-rotate-btn" class="mobile-tool-btn" data-mode="rotate">Rotate</button>
-                <button id="mobile-remove-btn" class="mobile-tool-btn" data-mode="remove">Remove</button>
-            </div>
-
-            <div id="lawn" class="lawn-grid"></div>
+            <div id="measurement-overlay" class="measurement-overlay" aria-hidden="true"></div>
+            <div id="lawn" class="lawn-grid" aria-label="backyard grid"></div>
             <div id="mobile-export-slot" class="mobile-export-slot" aria-live="polite"></div>
         </section>
     </main>

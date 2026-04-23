@@ -1,198 +1,210 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const mobileMediaQuery = window.matchMedia('(max-width: 900px)');
-    const hasTouchCapability = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
-    const userAgent = navigator.userAgent;
-    const isMobileAppleDevice = /iPhone|iPad|iPod/.test(userAgent)
-        || (/Macintosh/.test(userAgent) && hasTouchCapability);
-    let isMobileSafari = false;
-    const applyMobileMode = () => {
-        const isMobileFormFactor = mobileMediaQuery.matches || hasTouchCapability;
-        const hasSafari = /Safari/.test(userAgent);
-        const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS/.test(userAgent);
-        isMobileSafari = isMobileFormFactor && isMobileAppleDevice && hasSafari && !isOtherIOSBrowser;
-
-        document.body.classList.toggle('mobile-mode', isMobileSafari);
-    };
-
-    applyMobileMode();
-    mobileMediaQuery.addEventListener('change', applyMobileMode);
-
     const lawn = document.getElementById('lawn');
     const clearBtn = document.getElementById('clear-btn');
     const exportBtn = document.getElementById('export-btn');
-    const desktopControls = document.getElementById('desktop-controls');
-    const mobileExportSlot = document.getElementById('mobile-export-slot');
-    const mobileToolButtons = document.querySelectorAll('.mobile-tool-btn');
-    let currentMobileAction = 'place';
-    const GRID_SIZE = 10;
-    const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
-    
-    function setTileRotation(tile, rotation) {
-        tile.dataset.rotation = rotation;
-        tile.style.setProperty('--tile-rotation', `${rotation}deg`);
+    const loadSketchBtn = document.getElementById('load-sketch-btn');
+    const measurementToggleBtn = document.getElementById('toggle-measurements-btn');
+    const materialGrid = document.getElementById('material-grid');
+    const measurementOverlay = document.getElementById('measurement-overlay');
+
+    const GRID_COLUMNS = 18;
+    const GRID_ROWS = 22;
+    const MATERIALS = [
+        { key: 'empty', label: 'Erase' },
+        { key: 'deck', label: 'Deck Tile' },
+        { key: 'concrete', label: 'Concrete' },
+        { key: 'landscaping', label: 'Bed' },
+        { key: 'sand', label: 'Sand' },
+        { key: 'seat', label: 'Seat' },
+        { key: 'door', label: 'Door (3ft)' }
+    ];
+
+    let activeMaterial = 'deck';
+    let showMeasurements = true;
+
+    const cellByPosition = new Map();
+
+    function cellKey(row, col) {
+        return `${row}:${col}`;
     }
 
-    function createTile() {
-        const tile = document.createElement('div');
-        tile.classList.add('tile');
-        setTileRotation(tile, 0);
-        return tile;
+    function createMaterialButtons() {
+        const fragment = document.createDocumentFragment();
+
+        MATERIALS.forEach((material) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'material-btn';
+            button.dataset.material = material.key;
+            button.innerHTML = `<span class="swatch swatch-${material.key}" aria-hidden="true"></span>${material.label}`;
+            if (material.key === activeMaterial) {
+                button.classList.add('is-active');
+            }
+
+            button.addEventListener('click', () => {
+                activeMaterial = material.key;
+                [...materialGrid.querySelectorAll('.material-btn')].forEach((btn) => {
+                    btn.classList.toggle('is-active', btn.dataset.material === activeMaterial);
+                });
+            });
+
+            fragment.appendChild(button);
+        });
+
+        materialGrid.appendChild(fragment);
     }
 
-    function syncExportButtonLocation() {
-        if (document.body.classList.contains('mobile-mode')) {
-            mobileExportSlot.appendChild(exportBtn);
-        } else {
-            desktopControls.prepend(exportBtn);
-        }
+    function applyMaterialToCell(cell, material) {
+        cell.dataset.material = material;
     }
 
-    function setCurrentMobileAction(nextAction) {
-        currentMobileAction = nextAction;
-        mobileToolButtons.forEach((button) => {
-            button.classList.toggle('is-active', button.dataset.mode === nextAction);
+    function clearDoors() {
+        lawn.querySelectorAll('.cell.has-door').forEach((cell) => {
+            cell.classList.remove('has-door');
         });
     }
 
-    mobileToolButtons.forEach((button) => {
-        button.addEventListener('click', () => setCurrentMobileAction(button.dataset.mode));
-    });
+    function placeDoor(startRow, startCol) {
+        clearDoors();
+        const safeColStart = Math.min(Math.max(startCol, 0), GRID_COLUMNS - 3);
 
-    setCurrentMobileAction(currentMobileAction);
-
-    mobileMediaQuery.addEventListener('change', syncExportButtonLocation);
-    syncExportButtonLocation();
-
-    // Build the initial grid
-    function buildGrid() {
-        const fragment = document.createDocumentFragment();
-        
-        for (let i = 0; i < TOTAL_CELLS; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            fragment.appendChild(cell);
+        for (let i = 0; i < 3; i++) {
+            const doorCell = cellByPosition.get(cellKey(startRow, safeColStart + i));
+            if (doorCell) {
+                doorCell.classList.add('has-door');
+            }
         }
-        
+    }
+
+    function createCell(row, col) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.row = row;
+        cell.dataset.col = col;
+        cell.dataset.material = 'empty';
+        cellByPosition.set(cellKey(row, col), cell);
+
+        return cell;
+    }
+
+    function buildGrid() {
+        lawn.style.setProperty('--grid-columns', GRID_COLUMNS);
+        lawn.style.setProperty('--grid-rows', GRID_ROWS);
+
+        const fragment = document.createDocumentFragment();
+        for (let row = 0; row < GRID_ROWS; row++) {
+            for (let col = 0; col < GRID_COLUMNS; col++) {
+                fragment.appendChild(createCell(row, col));
+            }
+        }
         lawn.appendChild(fragment);
     }
 
-    // Handle Placement and Rotation (Left Clicks)
-    lawn.addEventListener('click', (e) => {
-        const target = e.target;
+    function buildMeasurementOverlay() {
+        measurementOverlay.innerHTML = `
+            <div class="measurement-label measurement-top">18 ft</div>
+            <div class="measurement-label measurement-left">18 ft</div>
+            <div class="measurement-label measurement-bottom">18 ft</div>
+            <div class="measurement-label measurement-extension">4 ft extension</div>
+        `;
+    }
 
-        if (isMobileSafari) {
-            if (currentMobileAction === 'place') {
-                if (target.classList.contains('cell') && target.children.length === 0) {
-                    target.appendChild(createTile());
-                }
-                return;
+    function applySketchLayout() {
+        clearGrid();
+
+        const topBoundaryRow = 1;
+        const bottomBoundaryRow = 18;
+        const leftBoundaryCol = 0;
+        const rightBoundaryCol = 17;
+
+        for (let row = topBoundaryRow; row <= bottomBoundaryRow; row++) {
+            for (let col = leftBoundaryCol; col <= rightBoundaryCol; col++) {
+                applyMaterialToCell(cellByPosition.get(cellKey(row, col)), 'concrete');
             }
+        }
 
-            if (currentMobileAction === 'rotate') {
-                if (!target.classList.contains('tile')) {
-                    return;
-                }
-
-                const currentRotation = parseInt(target.dataset.rotation || 0, 10);
-                const newRotation = currentRotation + 90;
-
-                setTileRotation(target, newRotation);
-                return;
+        for (let row = 18; row <= 21; row++) {
+            for (let col = 3; col <= 14; col++) {
+                applyMaterialToCell(cellByPosition.get(cellKey(row, col)), 'sand');
             }
+        }
 
-            if (currentMobileAction === 'remove') {
-                if (target.classList.contains('tile')) {
-                    target.remove();
-                } else if (target.classList.contains('cell') && target.children.length > 0) {
-                    target.innerHTML = '';
-                }
-            }
+        for (let col = 0; col <= 8; col++) {
+            applyMaterialToCell(cellByPosition.get(cellKey(2, col)), 'landscaping');
+        }
+
+        const seatPath = [
+            [16, 10], [15, 10], [15, 11], [15, 12], [15, 13],
+            [14, 13], [13, 13], [12, 13], [11, 13], [11, 14], [11, 15], [11, 16], [11, 17]
+        ];
+        seatPath.forEach(([row, col]) => {
+            applyMaterialToCell(cellByPosition.get(cellKey(row, col)), 'seat');
+        });
+
+        placeDoor(topBoundaryRow, 12);
+    }
+
+    function clearGrid() {
+        lawn.querySelectorAll('.cell').forEach((cell) => {
+            applyMaterialToCell(cell, 'empty');
+            cell.classList.remove('has-door');
+        });
+    }
+
+    function toggleMeasurements() {
+        showMeasurements = !showMeasurements;
+        lawn.classList.toggle('show-measurements', showMeasurements);
+        measurementOverlay.classList.toggle('hidden', !showMeasurements);
+        measurementToggleBtn.textContent = showMeasurements ? 'Hide Measurements' : 'Show Measurements';
+    }
+
+    lawn.addEventListener('click', (event) => {
+        const cell = event.target.closest('.cell');
+        if (!cell) {
             return;
         }
 
-        // Place a tile (desktop default)
-        if (target.classList.contains('cell') && target.children.length === 0) {
-            target.appendChild(createTile());
-        }
+        const row = Number(cell.dataset.row);
+        const col = Number(cell.dataset.col);
 
-        // Rotate a tile
-        else if (target.classList.contains('tile')) {
-            const currentRotation = parseInt(target.dataset.rotation || 0, 10);
-            const newRotation = currentRotation + 90;
-
-            setTileRotation(target, newRotation);
-        }
-    });
-
-    // Handle Removal (Right Clicks)
-    lawn.addEventListener('contextmenu', (e) => {
-        if (isMobileSafari) {
+        if (activeMaterial === 'door') {
+            if (row !== 1) {
+                return;
+            }
+            placeDoor(row, col);
             return;
         }
 
-        e.preventDefault();
-        const target = e.target;
-
-        // Clicked directly on the tile
-        if (target.classList.contains('tile')) {
-            target.remove();
-        }
-        // Clicked on the cell holding the tile
-        else if (target.classList.contains('cell') && target.children.length > 0) {
-            target.innerHTML = '';
-        }
+        applyMaterialToCell(cell, activeMaterial);
     });
 
-    // Handle Clear Button
-    clearBtn.addEventListener('click', () => {
-        const tiles = document.querySelectorAll('.tile');
-        tiles.forEach(tile => tile.remove());
-    });
+    clearBtn.addEventListener('click', clearGrid);
+    loadSketchBtn.addEventListener('click', applySketchLayout);
+    measurementToggleBtn.addEventListener('click', toggleMeasurements);
 
-    // Handle Export Button (Mobile-friendly)
     exportBtn.addEventListener('click', async () => {
         exportBtn.textContent = 'Generating...';
         exportBtn.disabled = true;
 
         try {
-            // Render the grid area to a canvas
-            const canvas = await html2canvas(lawn, {
-                scale: 2, // High resolution for retina displays
-                backgroundColor: '#1e293b' // Match body background
+            const canvas = await html2canvas(document.querySelector('.workspace'), {
+                scale: 2,
+                backgroundColor: '#0f172a'
             });
 
-            // Convert canvas to image file
-            canvas.toBlob(async (blob) => {
-                const file = new File([blob], 'deck-pattern.png', { type: 'image/png' });
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'backyard-plan.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
 
-                // Try native mobile sharing first (iOS/Android)
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    try {
-                        await navigator.share({
-                            files: [file],
-                            title: 'My Deck Pattern',
-                        });
-                    } catch (error) {
-                        console.log('Share canceled by user');
-                    }
-                } 
-                // Fallback for Desktop (Direct Download)
-                else {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'deck-pattern.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }
-
-                // Reset UI
                 exportBtn.textContent = 'Export Image';
                 exportBtn.disabled = false;
             }, 'image/png');
-
         } catch (error) {
             console.error('Error exporting image:', error);
             alert('Sorry, there was an issue exporting the image.');
@@ -201,6 +213,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Initialize application
+    createMaterialButtons();
     buildGrid();
+    buildMeasurementOverlay();
+    lawn.classList.add('show-measurements');
+    applySketchLayout();
 });
