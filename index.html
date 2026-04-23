@@ -17,12 +17,10 @@
         <header class="ui-panel">
             <h1>Backyard Layout Designer</h1>
             <div class="instructions" id="instructions">
-                <p><kbd>Left Click</kbd> Paint selected material</p>
-                <p><kbd>Right Click</kbd> Remove from square</p>
-                <p><kbd>Door tool</kbd> paints one 1 ft square tile</p>
+                <p><kbd>Click / Drag</kbd> Paint selected material</p>
+                <p><kbd>Right Click / Erase</kbd> Remove from square</p>
+                <p><kbd>Scroll / Pinch</kbd> Zoom canvas</p>
             </div>
-
-            <button id="mode-toggle-btn" class="primary-btn">Switch to Backyard Materials</button>
 
             <div class="panel-group">
                 <h2>Canvas Size (feet)</h2>
@@ -37,15 +35,6 @@
                     </label>
                 </div>
                 <button id="apply-canvas-btn">Apply Canvas Size</button>
-            </div>
-
-            <div class="panel-group">
-                <h2>Zoom</h2>
-                <div class="zoom-controls" aria-label="Zoom controls">
-                    <button id="zoom-out-btn" type="button">−</button>
-                    <button id="zoom-reset-btn" type="button">100%</button>
-                    <button id="zoom-in-btn" type="button">+</button>
-                </div>
             </div>
 
             <div id="material-palette" class="material-palette" aria-label="Backyard material palette">
@@ -65,7 +54,7 @@
 
             <div class="button-group" id="desktop-controls">
                 <button id="measurements-btn">Show Measurements</button>
-                <button id="load-sketch-btn">Load Sketch Reference</button>
+                <button id="load-last-design-btn">Load Last Design</button>
                 <button id="export-btn" class="success-btn">Export Image</button>
                 <button id="clear-btn" class="danger-btn">Clear All</button>
             </div>

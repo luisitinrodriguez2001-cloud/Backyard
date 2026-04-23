@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
     const mobileMediaQuery = window.matchMedia('(max-width: 900px)');
     const hasTouchCapability = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
     const userAgent = navigator.userAgent;
@@ -11,7 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const BASE_CELL_SIZE_MOBILE = 14;
     const MIN_ZOOM = 0.5;
     const MAX_ZOOM = 2.5;
-    const ZOOM_STEP = 0.1;
+    const ZOOM_STEP_WHEEL = 0.05;
+    const DESIGN_CACHE_KEY = 'backyard-designer-last-design-v1';
 
     const lawn = document.getElementById('lawn');
     const gridShell = document.getElementById('grid-shell');
@@ -21,25 +22,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const mobileExportSlot = document.getElementById('mobile-export-slot');
     const mobileToolButtons = document.querySelectorAll('.mobile-tool-btn');
     const materialButtons = document.querySelectorAll('.palette-btn');
-    const modeToggleBtn = document.getElementById('mode-toggle-btn');
     const measurementsBtn = document.getElementById('measurements-btn');
-    const loadSketchBtn = document.getElementById('load-sketch-btn');
+    const loadLastDesignBtn = document.getElementById('load-last-design-btn');
     const topRuler = document.getElementById('top-ruler');
     const leftRuler = document.getElementById('left-ruler');
     const canvasWidthInput = document.getElementById('canvas-width');
     const canvasHeightInput = document.getElementById('canvas-height');
     const applyCanvasBtn = document.getElementById('apply-canvas-btn');
-    const zoomOutBtn = document.getElementById('zoom-out-btn');
-    const zoomInBtn = document.getElementById('zoom-in-btn');
-    const zoomResetBtn = document.getElementById('zoom-reset-btn');
 
     let currentMobileAction = 'place';
     let currentMaterial = 'deck';
     let isMobileSafari = false;
-    let isBackyardMode = false;
     let gridCols = Number(canvasWidthInput.value);
     let gridRows = Number(canvasHeightInput.value);
     let zoomLevel = 1;
+    let pointerAction = null;
+    let pinchState = null;
 
     const applyMobileMode = () => {
         const isMobileFormFactor = mobileMediaQuery.matches || hasTouchCapability;
@@ -55,13 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
         feature.classList.add('feature', `${material}-feature`);
         feature.dataset.material = material;
         return feature;
-    }
-
-    function getCell(row, col) {
-        if (row < 1 || col < 1 || row > gridRows || col > gridCols) {
-            return null;
-        }
-        return lawn.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
     }
 
     function clearCell(cell) {
@@ -84,6 +75,77 @@ document.addEventListener("DOMContentLoaded", () => {
         cell.appendChild(createFeature(material));
     }
 
+    function serializeGrid() {
+        const cells = lawn.querySelectorAll('.cell');
+        const entries = [];
+
+        cells.forEach((cell) => {
+            if (cell.classList.contains('has-door-top')) {
+                entries.push([Number(cell.dataset.row), Number(cell.dataset.col), 'door']);
+                return;
+            }
+
+            const feature = cell.querySelector('.feature');
+            if (feature?.dataset.material) {
+                entries.push([Number(cell.dataset.row), Number(cell.dataset.col), feature.dataset.material]);
+            }
+        });
+
+        return {
+            version: 1,
+            cols: gridCols,
+            rows: gridRows,
+            zoomLevel,
+            entries
+        };
+    }
+
+    function saveGridToCache() {
+        try {
+            localStorage.setItem(DESIGN_CACHE_KEY, JSON.stringify(serializeGrid()));
+        } catch (error) {
+            console.warn('Could not cache design', error);
+        }
+    }
+
+    function loadGridFromCache() {
+        const raw = localStorage.getItem(DESIGN_CACHE_KEY);
+        if (!raw) {
+            return false;
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.entries)) {
+                return false;
+            }
+
+            gridCols = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(parsed.cols) || gridCols));
+            gridRows = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(parsed.rows) || gridRows));
+            canvasWidthInput.value = String(gridCols);
+            canvasHeightInput.value = String(gridRows);
+            applyGridSizing();
+            buildGrid();
+            buildRulers();
+
+            parsed.entries.forEach(([row, col, material]) => {
+                const cell = lawn.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                if (cell) {
+                    paintMaterial(cell, material);
+                }
+            });
+
+            if (typeof parsed.zoomLevel === 'number') {
+                setZoom(parsed.zoomLevel);
+            }
+
+            return true;
+        } catch (error) {
+            console.warn('Could not load cached design', error);
+            return false;
+        }
+    }
+
     function syncExportButtonLocation() {
         if (document.body.classList.contains('mobile-mode')) {
             mobileExportSlot.appendChild(exportBtn);
@@ -104,19 +166,6 @@ document.addEventListener("DOMContentLoaded", () => {
         materialButtons.forEach((button) => {
             button.classList.toggle('is-active', button.dataset.material === nextMaterial);
         });
-    }
-
-    function setDesignMode(nextMode) {
-        isBackyardMode = nextMode === 'backyard';
-        document.body.classList.toggle('backyard-mode', isBackyardMode);
-
-        modeToggleBtn.textContent = isBackyardMode
-            ? 'Switch to Deck Tile Only'
-            : 'Switch to Backyard Materials';
-
-        if (!isBackyardMode) {
-            setCurrentMaterial('deck');
-        }
     }
 
     function applyGridSizing() {
@@ -164,13 +213,16 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateCanvasSize() {
         const nextCols = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(canvasWidthInput.value) || gridCols));
         const nextRows = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(canvasHeightInput.value) || gridRows));
+
         gridCols = nextCols;
         gridRows = nextRows;
         canvasWidthInput.value = String(gridCols);
         canvasHeightInput.value = String(gridRows);
+
         applyGridSizing();
         buildGrid();
         buildRulers();
+        saveGridToCache();
     }
 
     function applyZoom() {
@@ -179,7 +231,6 @@ document.addEventListener("DOMContentLoaded", () => {
             : BASE_CELL_SIZE_DESKTOP;
         const effectiveCellSize = Math.round(baseCellSize * zoomLevel);
         document.documentElement.style.setProperty('--cell-size', `${effectiveCellSize}px`);
-        zoomResetBtn.textContent = `${Math.round(zoomLevel * 100)}%`;
     }
 
     function setZoom(nextZoom) {
@@ -187,59 +238,8 @@ document.addEventListener("DOMContentLoaded", () => {
         applyZoom();
     }
 
-    function loadSketchLayout() {
-        const cells = lawn.querySelectorAll('.cell');
-        cells.forEach((cell) => clearCell(cell));
-
-        for (let row = 1; row <= 18; row++) {
-            for (let col = 1; col <= 18; col++) {
-                const borderCell = getCell(row, col);
-                if (!borderCell) {
-                    continue;
-                }
-                if (row === 1 || row === 18 || col === 1 || col === 18) {
-                    borderCell.appendChild(createFeature('concrete'));
-                }
-            }
-        }
-
-        for (let col = 2; col <= 17; col++) {
-            paintMaterial(getCell(19, col), 'sand');
-            paintMaterial(getCell(20, col), 'sand');
-            if (col >= 3 && col <= 16) {
-                paintMaterial(getCell(21, col), 'sand');
-            }
-            if (col >= 5 && col <= 14) {
-                paintMaterial(getCell(22, col), 'sand');
-            }
-        }
-
-        for (let col = 2; col <= 9; col++) {
-            paintMaterial(getCell(2, col), 'seat');
-        }
-
-        paintMaterial(getCell(1, 13), 'door');
-
-        const stepPath = [
-            [15, 10], [14, 10], [14, 11], [14, 12], [14, 13], [14, 14],
-            [13, 14], [12, 14], [11, 14], [10, 14], [9, 14], [9, 15], [9, 16], [9, 17]
-        ];
-
-        stepPath.forEach(([row, col]) => {
-            const cell = getCell(row, col);
-            if (cell) {
-                paintMaterial(cell, 'landscaping');
-            }
-        });
-    }
-
     function handlePaint(targetCell) {
         if (!targetCell) {
-            return;
-        }
-
-        if (!isBackyardMode) {
-            paintMaterial(targetCell, 'deck');
             return;
         }
 
@@ -250,7 +250,29 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!targetCell) {
             return;
         }
+
         clearCell(targetCell);
+    }
+
+    function applyPointerAction(cell) {
+        if (!cell || !pointerAction) {
+            return;
+        }
+
+        if (pointerAction === 'paint') {
+            handlePaint(cell);
+        } else {
+            handleRemove(cell);
+        }
+    }
+
+    function readCellFromPointerEvent(event) {
+        const target = document.elementFromPoint(event.clientX, event.clientY);
+        return target?.closest?.('.cell') || null;
+    }
+
+    function getPinchDistance(first, second) {
+        return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
     }
 
     applyMobileMode();
@@ -265,76 +287,140 @@ document.addEventListener("DOMContentLoaded", () => {
         button.addEventListener('click', () => setCurrentMaterial(button.dataset.material));
     });
 
-    modeToggleBtn.addEventListener('click', () => {
-        setDesignMode(isBackyardMode ? 'deck' : 'backyard');
-    });
-
     measurementsBtn.addEventListener('click', () => {
         const measurementsVisible = document.body.classList.toggle('show-measurements');
         measurementsBtn.textContent = measurementsVisible ? 'Hide Measurements' : 'Show Measurements';
     });
 
-    loadSketchBtn.addEventListener('click', () => {
-        if (!isBackyardMode) {
-            setDesignMode('backyard');
+    loadLastDesignBtn.addEventListener('click', () => {
+        const loaded = loadGridFromCache();
+        if (!loaded) {
+            alert('No saved design found yet. Start drawing and it will save automatically.');
         }
-        loadSketchLayout();
     });
 
     applyCanvasBtn.addEventListener('click', updateCanvasSize);
 
-    zoomInBtn.addEventListener('click', () => setZoom(zoomLevel + ZOOM_STEP));
-    zoomOutBtn.addEventListener('click', () => setZoom(zoomLevel - ZOOM_STEP));
-    zoomResetBtn.addEventListener('click', () => setZoom(1));
+    gridShell.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        const direction = event.deltaY > 0 ? -1 : 1;
+        setZoom(zoomLevel + (direction * ZOOM_STEP_WHEEL));
+    }, { passive: false });
 
-    lawn.addEventListener('click', (e) => {
-        const cell = e.target.closest('.cell');
-
-        if (isMobileSafari) {
-            if (currentMobileAction === 'place') {
-                handlePaint(cell);
-            } else {
-                handleRemove(cell);
-            }
-            return;
+    lawn.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' && event.button === 2) {
+            pointerAction = 'erase';
+        } else if (isMobileSafari) {
+            pointerAction = currentMobileAction === 'place' ? 'paint' : 'erase';
+        } else {
+            pointerAction = 'paint';
         }
 
-        handlePaint(cell);
+        lawn.setPointerCapture(event.pointerId);
+        applyPointerAction(readCellFromPointerEvent(event));
     });
 
-    lawn.addEventListener('contextmenu', (e) => {
-        if (isMobileSafari) {
+    lawn.addEventListener('pointermove', (event) => {
+        if (!pointerAction) {
+            return;
+        }
+        applyPointerAction(readCellFromPointerEvent(event));
+    });
+
+    lawn.addEventListener('pointerup', () => {
+        if (pointerAction) {
+            saveGridToCache();
+        }
+        pointerAction = null;
+    });
+
+    lawn.addEventListener('pointercancel', () => {
+        pointerAction = null;
+    });
+
+    lawn.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+    });
+
+    gridShell.addEventListener('touchstart', (event) => {
+        if (event.touches.length === 2) {
+            pinchState = {
+                distance: getPinchDistance(event.touches[0], event.touches[1]),
+                zoom: zoomLevel
+            };
+        }
+    }, { passive: false });
+
+    gridShell.addEventListener('touchmove', (event) => {
+        if (event.touches.length !== 2 || !pinchState) {
             return;
         }
 
-        e.preventDefault();
-        const cell = e.target.closest('.cell');
-        handleRemove(cell);
+        event.preventDefault();
+        const nextDistance = getPinchDistance(event.touches[0], event.touches[1]);
+        if (!nextDistance || !pinchState.distance) {
+            return;
+        }
+
+        const ratio = nextDistance / pinchState.distance;
+        setZoom(pinchState.zoom * ratio);
+    }, { passive: false });
+
+    gridShell.addEventListener('touchend', () => {
+        if (pinchState) {
+            saveGridToCache();
+        }
+        pinchState = null;
     });
 
     clearBtn.addEventListener('click', () => {
         const cells = lawn.querySelectorAll('.cell');
         cells.forEach((cell) => clearCell(cell));
+        saveGridToCache();
     });
 
     exportBtn.addEventListener('click', async () => {
         exportBtn.textContent = 'Generating...';
         exportBtn.disabled = true;
 
+        const exportWrapper = document.createElement('div');
+        exportWrapper.style.background = '#1e293b';
+        exportWrapper.style.padding = '32px';
+        exportWrapper.style.display = 'inline-flex';
+        exportWrapper.style.justifyContent = 'center';
+        exportWrapper.style.alignItems = 'center';
+
+        const clone = gridShell.cloneNode(true);
+        clone.style.maxWidth = 'none';
+        clone.style.maxHeight = 'none';
+        clone.style.overflow = 'visible';
+        clone.scrollTop = 0;
+        clone.scrollLeft = 0;
+        exportWrapper.appendChild(clone);
+        document.body.appendChild(exportWrapper);
+
         try {
-            const canvas = await html2canvas(document.getElementById('grid-shell'), {
+            const canvas = await html2canvas(exportWrapper, {
                 scale: 2,
                 backgroundColor: '#1e293b'
             });
 
             canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    exportBtn.textContent = 'Export Image';
+                    exportBtn.disabled = false;
+                    document.body.removeChild(exportWrapper);
+                    alert('Sorry, there was an issue exporting the image.');
+                    return;
+                }
+
                 const file = new File([blob], 'backyard-layout.png', { type: 'image/png' });
 
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
                             files: [file],
-                            title: 'My Backyard Layout',
+                            title: 'My Backyard Layout'
                         });
                     } catch (error) {
                         console.log('Share canceled by user');
@@ -352,13 +438,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 exportBtn.textContent = 'Export Image';
                 exportBtn.disabled = false;
+                document.body.removeChild(exportWrapper);
             }, 'image/png');
-
         } catch (error) {
             console.error('Error exporting image:', error);
             alert('Sorry, there was an issue exporting the image.');
             exportBtn.textContent = 'Export Image';
             exportBtn.disabled = false;
+            document.body.removeChild(exportWrapper);
         }
     });
 
@@ -367,7 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
     buildRulers();
     setCurrentMobileAction(currentMobileAction);
     setCurrentMaterial(currentMaterial);
-    setDesignMode('deck');
     setZoom(1);
     syncExportButtonLocation();
+    loadGridFromCache();
 });
