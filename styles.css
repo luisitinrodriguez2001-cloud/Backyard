@@ -94,16 +94,6 @@ button:active {
     transform: translateY(1px);
 }
 
-.primary-btn {
-    background-color: #0ea5e9;
-    color: white;
-    margin-bottom: 1rem;
-}
-
-.primary-btn:hover {
-    background-color: #0284c7;
-}
-
 .panel-group {
     margin-bottom: 1rem;
 }
@@ -146,26 +136,9 @@ button:active {
     font-size: 0.85rem;
 }
 
-.zoom-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.5rem;
-}
-
-.zoom-controls button {
-    background: #1e293b;
-    color: #cbd5e1;
-    border: 1px solid #475569;
-    padding: 0.55rem;
-}
-
 .material-palette {
-    display: none;
-    margin-bottom: 1rem;
-}
-
-body.backyard-mode .material-palette {
     display: block;
+    margin-bottom: 1rem;
 }
 
 .material-palette h2 {
@@ -230,6 +203,7 @@ body.backyard-mode .material-palette {
     overflow: auto;
     max-height: calc(100vh - 7rem);
     max-width: min(90vw, 900px);
+    touch-action: none;
 }
 
 .lawn-grid {
@@ -264,8 +238,8 @@ body.backyard-mode .material-palette {
 
 .deck-feature {
     background-image:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.18)),
-        repeating-linear-gradient(-45deg, #b87451 0 4px, #7a4a35 4px 6px);
+        linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.22)),
+        repeating-linear-gradient(-45deg, #b66e4d 0 30%, #8b5337 30% 35%, #c47b58 35% 65%, #7a4a35 65% 70%);
 }
 
 .concrete-feature {
@@ -280,45 +254,53 @@ body.backyard-mode .material-palette {
 
 .sand-feature {
     background-image:
-        radial-gradient(circle at 4px 4px, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.2px),
-        linear-gradient(145deg, #facc15, #eab308);
+        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 0 10%, transparent 11%),
+        radial-gradient(circle at 70% 65%, rgba(0, 0, 0, 0.12) 0 12%, transparent 13%),
+        linear-gradient(145deg, #e8d39b, #d8bb7a);
 }
 
 .seat-feature {
-    background: linear-gradient(180deg, #111827 0 55%, #0f172a 55% 100%);
-    border: 1px solid #374151;
+    background-image:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0 28%, transparent 28% 100%),
+        linear-gradient(180deg, #b08968 0 55%, #7f5539 55% 100%);
+    border: 1px solid #5c3d2e;
+    border-radius: 2px;
 }
 
 .pavers-feature {
     background-image:
-        repeating-linear-gradient(0deg, #94a3b8 0 1px, transparent 1px 8px),
-        repeating-linear-gradient(90deg, #94a3b8 0 1px, transparent 1px 8px),
-        linear-gradient(145deg, #64748b, #475569);
+        linear-gradient(0deg, rgba(61, 53, 48, 0.45), rgba(61, 53, 48, 0.45)),
+        repeating-linear-gradient(0deg, transparent 0 46%, rgba(255, 255, 255, 0.25) 46% 48%, transparent 48% 100%),
+        repeating-linear-gradient(90deg, transparent 0 46%, rgba(255, 255, 255, 0.22) 46% 48%, transparent 48% 100%),
+        linear-gradient(145deg, #9f8772, #7b6858);
 }
 
 .gravel-feature {
     background-image:
-        radial-gradient(circle at 20% 30%, #d1d5db 0 1px, transparent 1.2px),
-        radial-gradient(circle at 70% 40%, #9ca3af 0 1px, transparent 1.2px),
-        radial-gradient(circle at 35% 75%, #e5e7eb 0 1px, transparent 1.2px),
-        linear-gradient(145deg, #6b7280, #4b5563);
+        radial-gradient(circle at 15% 30%, #d6d3d1 0 10%, transparent 11%),
+        radial-gradient(circle at 35% 75%, #a8a29e 0 12%, transparent 13%),
+        radial-gradient(circle at 70% 40%, #e7e5e4 0 11%, transparent 12%),
+        radial-gradient(circle at 80% 80%, #b4b0ac 0 10%, transparent 11%),
+        linear-gradient(145deg, #8a8f94, #676d73);
+    background-size: 10px 10px;
 }
 
 .turf-feature {
     background-image:
-        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.12) 0 1px, transparent 1px 3px),
-        linear-gradient(145deg, #22c55e, #15803d);
+        repeating-linear-gradient(100deg, rgba(6, 78, 59, 0.35) 0 8%, rgba(20, 83, 45, 0.2) 8% 16%, transparent 16% 24%),
+        linear-gradient(145deg, #2f9f4c, #1f7a34);
+    background-size: 8px 8px;
 }
 
 .cell.has-door-top::before {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    right: 2px;
-    height: 4px;
-    background: linear-gradient(90deg, #fb7185, #f59e0b, #10b981, #0ea5e9);
-    border-radius: 6px;
+    inset: 2px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.08)),
+        linear-gradient(135deg, #8fb6d4, #5f89a9);
+    border: 1px solid rgba(230, 244, 255, 0.65);
+    border-radius: 2px;
 }
 
 .ruler {
