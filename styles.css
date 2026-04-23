@@ -271,7 +271,7 @@ button:active {
     background-image:
         linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0 28%, transparent 28% 100%),
         linear-gradient(180deg, #b08968 0 55%, #7f5539 55% 100%);
-    border: 1px solid #5c3d2e;
+    box-shadow: inset 0 0 0 1px #5c3d2e;
     border-radius: 2px;
 }
 
@@ -310,7 +310,7 @@ button:active {
 .cell.has-door-top::before {
     content: '';
     position: absolute;
-    inset: 2px;
+    inset: 0;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.08)),
         linear-gradient(135deg, #8fb6d4, #5f89a9);
