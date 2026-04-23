@@ -153,6 +153,38 @@ button:active {
     gap: 0.5rem;
 }
 
+.texture-size-controls {
+    margin-top: 0.75rem;
+    padding: 0.6rem;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background: #1e293b;
+}
+
+.texture-size-controls h3 {
+    font-size: 0.82rem;
+    color: #bfdbfe;
+    margin-bottom: 0.45rem;
+}
+
+.texture-size-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+.texture-size-options label {
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.texture-size-controls.is-hidden {
+    display: none;
+}
+
 .palette-btn {
     background: #1e293b;
     color: #cbd5e1;
@@ -256,6 +288,18 @@ button:active {
     background-size: 10px 10px;
 }
 
+.grass-size-small {
+    background-size: 6px 6px;
+}
+
+.grass-size-medium {
+    background-size: 10px 10px;
+}
+
+.grass-size-large {
+    background-size: 16px 16px;
+}
+
 .landscaping-feature {
     background-image: repeating-linear-gradient(45deg, #3f6212 0 5px, #365314 5px 10px);
 }
@@ -305,6 +349,18 @@ button:active {
         repeating-linear-gradient(90deg, #f8fafc 0 30%, #dbeafe 30% 34%, #ffffff 34% 66%, #dbeafe 66% 70%, #f8fafc 70% 100%),
         linear-gradient(180deg, transparent 0 20%, rgba(148, 163, 184, 0.65) 20% 24%, transparent 24% 76%, rgba(148, 163, 184, 0.65) 76% 80%, transparent 80% 100%);
     border: 1px solid #cbd5e1;
+}
+
+.white-vinyl-fence-size-small {
+    background-size: 6px 100%, 100% 100%;
+}
+
+.white-vinyl-fence-size-medium {
+    background-size: 10px 100%, 100% 100%;
+}
+
+.white-vinyl-fence-size-large {
+    background-size: 16px 100%, 100% 100%;
 }
 
 .cell.has-door-top::before {

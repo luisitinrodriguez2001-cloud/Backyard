@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileExportSlot = document.getElementById('mobile-export-slot');
     const mobileToolButtons = document.querySelectorAll('.mobile-tool-btn');
     const materialButtons = document.querySelectorAll('.palette-btn');
+    const textureSizeControls = document.getElementById('texture-size-controls');
+    const textureSizeTitle = document.getElementById('texture-size-title');
+    const textureSizeInputs = document.querySelectorAll('input[name="texture-size"]');
     const measurementsBtn = document.getElementById('measurements-btn');
     const loadLastDesignBtn = document.getElementById('load-last-design-btn');
     const topRuler = document.getElementById('top-ruler');
@@ -32,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentMobileAction = 'place';
     let currentMaterial = 'deck';
+    let currentTextureSize = 'medium';
     let isMobileSafari = false;
     let gridCols = Number(canvasWidthInput.value);
     let gridRows = Number(canvasHeightInput.value);
@@ -48,10 +52,29 @@ document.addEventListener('DOMContentLoaded', () => {
         applyZoom();
     };
 
-    function createFeature(material) {
+    const SIZE_VARIANT_MATERIALS = new Set(['grass', 'white-vinyl-fence']);
+    const SIZE_VARIANTS_BY_MATERIAL = {
+        grass: ['small', 'medium', 'large'],
+        'white-vinyl-fence': ['small', 'medium', 'large']
+    };
+
+    function getValidatedTextureSize(material, requestedSize) {
+        const options = SIZE_VARIANTS_BY_MATERIAL[material];
+        if (!options) {
+            return null;
+        }
+
+        return options.includes(requestedSize) ? requestedSize : 'medium';
+    }
+
+    function createFeature(material, textureSize = null) {
         const feature = document.createElement('div');
         feature.classList.add('feature', `${material}-feature`);
         feature.dataset.material = material;
+        if (textureSize) {
+            feature.dataset.textureSize = textureSize;
+            feature.classList.add(`${material}-size-${textureSize}`);
+        }
         return feature;
     }
 
@@ -60,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.classList.remove('has-door-top');
     }
 
-    function paintMaterial(cell, material) {
+    function paintMaterial(cell, material, textureSize = null) {
         if (!cell) {
             return;
         }
@@ -72,7 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        cell.appendChild(createFeature(material));
+        const validatedTextureSize = getValidatedTextureSize(material, textureSize);
+        cell.appendChild(createFeature(material, validatedTextureSize));
     }
 
     function serializeGrid() {
@@ -87,7 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const feature = cell.querySelector('.feature');
             if (feature?.dataset.material) {
-                entries.push([Number(cell.dataset.row), Number(cell.dataset.col), feature.dataset.material]);
+                entries.push([
+                    Number(cell.dataset.row),
+                    Number(cell.dataset.col),
+                    feature.dataset.material,
+                    feature.dataset.textureSize || null
+                ]);
             }
         });
 
@@ -128,10 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
             buildGrid();
             buildRulers();
 
-            parsed.entries.forEach(([row, col, material]) => {
+            parsed.entries.forEach((entry) => {
+                const [row, col, material, textureSize = null] = entry;
                 const cell = lawn.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
                 if (cell) {
-                    paintMaterial(cell, material);
+                    paintMaterial(cell, material, textureSize);
                 }
             });
 
@@ -165,6 +195,23 @@ document.addEventListener('DOMContentLoaded', () => {
         currentMaterial = nextMaterial;
         materialButtons.forEach((button) => {
             button.classList.toggle('is-active', button.dataset.material === nextMaterial);
+        });
+        syncTextureSizeControls();
+    }
+
+    function syncTextureSizeControls() {
+        const showSizePicker = SIZE_VARIANT_MATERIALS.has(currentMaterial);
+        textureSizeControls.classList.toggle('is-hidden', !showSizePicker);
+        if (!showSizePicker) {
+            return;
+        }
+
+        const isGrass = currentMaterial === 'grass';
+        textureSizeTitle.textContent = isGrass ? 'Grass Texture Size' : 'Vinyl Texture Size';
+        const nextSize = getValidatedTextureSize(currentMaterial, currentTextureSize) || 'medium';
+        currentTextureSize = nextSize;
+        textureSizeInputs.forEach((input) => {
+            input.checked = input.value === nextSize;
         });
     }
 
@@ -243,7 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        paintMaterial(targetCell, currentMaterial);
+        const sizeSelection = SIZE_VARIANT_MATERIALS.has(currentMaterial) ? currentTextureSize : null;
+        paintMaterial(targetCell, currentMaterial, sizeSelection);
     }
 
     function handleRemove(targetCell) {
@@ -296,6 +344,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     materialButtons.forEach((button) => {
         button.addEventListener('click', () => setCurrentMaterial(button.dataset.material));
+    });
+
+    textureSizeInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            if (!input.checked) {
+                return;
+            }
+            currentTextureSize = input.value;
+        });
     });
 
     measurementsBtn.addEventListener('click', () => {
