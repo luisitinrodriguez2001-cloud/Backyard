@@ -19,10 +19,34 @@
             <div class="instructions" id="instructions">
                 <p><kbd>Left Click</kbd> Paint selected material</p>
                 <p><kbd>Right Click</kbd> Remove from square</p>
-                <p><kbd>Door tool</kbd> draws a 3 ft top-line marker</p>
+                <p><kbd>Door tool</kbd> paints one 1 ft square tile</p>
             </div>
 
             <button id="mode-toggle-btn" class="primary-btn">Switch to Backyard Materials</button>
+
+            <div class="panel-group">
+                <h2>Canvas Size (feet)</h2>
+                <div class="canvas-size-controls">
+                    <label>
+                        Width
+                        <input id="canvas-width" type="number" min="10" max="200" value="40">
+                    </label>
+                    <label>
+                        Height
+                        <input id="canvas-height" type="number" min="10" max="200" value="60">
+                    </label>
+                </div>
+                <button id="apply-canvas-btn">Apply Canvas Size</button>
+            </div>
+
+            <div class="panel-group">
+                <h2>Zoom</h2>
+                <div class="zoom-controls" aria-label="Zoom controls">
+                    <button id="zoom-out-btn" type="button">−</button>
+                    <button id="zoom-reset-btn" type="button">100%</button>
+                    <button id="zoom-in-btn" type="button">+</button>
+                </div>
+            </div>
 
             <div id="material-palette" class="material-palette" aria-label="Backyard material palette">
                 <h2>Materials & Features</h2>
@@ -32,7 +56,10 @@
                     <button class="palette-btn" data-material="landscaping">Landscaping Bed</button>
                     <button class="palette-btn" data-material="sand">Sand</button>
                     <button class="palette-btn" data-material="seat">Seats</button>
-                    <button class="palette-btn" data-material="door">Door (3 ft)</button>
+                    <button class="palette-btn" data-material="pavers">Pavers</button>
+                    <button class="palette-btn" data-material="gravel">Gravel</button>
+                    <button class="palette-btn" data-material="turf">Artificial Turf</button>
+                    <button class="palette-btn" data-material="door">Door (1 ft)</button>
                 </div>
             </div>
 

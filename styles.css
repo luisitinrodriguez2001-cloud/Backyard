@@ -74,6 +74,11 @@ kbd {
     border: 1px solid #475569;
 }
 
+button,
+input {
+    font: inherit;
+}
+
 button {
     width: 100%;
     padding: 0.75rem;
@@ -97,6 +102,61 @@ button:active {
 
 .primary-btn:hover {
     background-color: #0284c7;
+}
+
+.panel-group {
+    margin-bottom: 1rem;
+}
+
+.panel-group h2 {
+    font-size: 0.95rem;
+    margin-bottom: 0.6rem;
+    color: #bfdbfe;
+}
+
+.canvas-size-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.canvas-size-controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.8rem;
+    color: #cbd5e1;
+}
+
+.canvas-size-controls input {
+    width: 100%;
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+}
+
+#apply-canvas-btn {
+    background: #1e293b;
+    color: #bfdbfe;
+    border: 1px solid #475569;
+    padding: 0.6rem;
+    font-size: 0.85rem;
+}
+
+.zoom-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.zoom-controls button {
+    background: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid #475569;
+    padding: 0.55rem;
 }
 
 .material-palette {
@@ -204,27 +264,50 @@ body.backyard-mode .material-palette {
 
 .deck-feature {
     background-image:
-        linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12)),
-        repeating-linear-gradient(-45deg, #b87451 0 11px, #221814 11px 14px);
+        linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.18)),
+        repeating-linear-gradient(-45deg, #b87451 0 4px, #7a4a35 4px 6px);
 }
 
 .concrete-feature {
-    background-image: radial-gradient(circle at 8px 8px, rgba(255,255,255,0.2) 0 1px, transparent 2px),
+    background-image:
+        radial-gradient(circle at 3px 3px, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.2px),
         linear-gradient(145deg, #a8b0ba, #7b8794);
 }
 
 .landscaping-feature {
-    background-image: repeating-linear-gradient(45deg, #3f6212 0 8px, #365314 8px 16px);
+    background-image: repeating-linear-gradient(45deg, #3f6212 0 5px, #365314 5px 10px);
 }
 
 .sand-feature {
-    background-image: radial-gradient(circle at 10px 10px, rgba(255,255,255,0.15) 0 1px, transparent 2px),
+    background-image:
+        radial-gradient(circle at 4px 4px, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.2px),
         linear-gradient(145deg, #facc15, #eab308);
 }
 
 .seat-feature {
     background: linear-gradient(180deg, #111827 0 55%, #0f172a 55% 100%);
     border: 1px solid #374151;
+}
+
+.pavers-feature {
+    background-image:
+        repeating-linear-gradient(0deg, #94a3b8 0 1px, transparent 1px 8px),
+        repeating-linear-gradient(90deg, #94a3b8 0 1px, transparent 1px 8px),
+        linear-gradient(145deg, #64748b, #475569);
+}
+
+.gravel-feature {
+    background-image:
+        radial-gradient(circle at 20% 30%, #d1d5db 0 1px, transparent 1.2px),
+        radial-gradient(circle at 70% 40%, #9ca3af 0 1px, transparent 1.2px),
+        radial-gradient(circle at 35% 75%, #e5e7eb 0 1px, transparent 1.2px),
+        linear-gradient(145deg, #6b7280, #4b5563);
+}
+
+.turf-feature {
+    background-image:
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.12) 0 1px, transparent 1px 3px),
+        linear-gradient(145deg, #22c55e, #15803d);
 }
 
 .cell.has-door-top::before {
@@ -287,7 +370,6 @@ body.show-measurements .grid-shell::after {
 }
 
 body.mobile-mode {
-    --cell-size: 14px;
     align-items: flex-start;
     padding: 1rem;
 }
