@@ -5,10 +5,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const isMobileAppleDevice = /iPhone|iPad|iPod/.test(userAgent)
         || (/Macintosh/.test(userAgent) && hasTouchCapability);
 
-    const GRID_COLS = 40;
-    const GRID_ROWS = 60;
-    const TOTAL_CELLS = GRID_COLS * GRID_ROWS;
-    const DOOR_SPAN = 3;
+    const MIN_GRID_SIZE = 10;
+    const MAX_GRID_SIZE = 200;
+    const BASE_CELL_SIZE_DESKTOP = 18;
+    const BASE_CELL_SIZE_MOBILE = 14;
+    const MIN_ZOOM = 0.5;
+    const MAX_ZOOM = 2.5;
+    const ZOOM_STEP = 0.1;
 
     const lawn = document.getElementById('lawn');
     const gridShell = document.getElementById('grid-shell');
@@ -23,11 +26,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const loadSketchBtn = document.getElementById('load-sketch-btn');
     const topRuler = document.getElementById('top-ruler');
     const leftRuler = document.getElementById('left-ruler');
+    const canvasWidthInput = document.getElementById('canvas-width');
+    const canvasHeightInput = document.getElementById('canvas-height');
+    const applyCanvasBtn = document.getElementById('apply-canvas-btn');
+    const zoomOutBtn = document.getElementById('zoom-out-btn');
+    const zoomInBtn = document.getElementById('zoom-in-btn');
+    const zoomResetBtn = document.getElementById('zoom-reset-btn');
 
     let currentMobileAction = 'place';
     let currentMaterial = 'deck';
     let isMobileSafari = false;
     let isBackyardMode = false;
+    let gridCols = Number(canvasWidthInput.value);
+    let gridRows = Number(canvasHeightInput.value);
+    let zoomLevel = 1;
 
     const applyMobileMode = () => {
         const isMobileFormFactor = mobileMediaQuery.matches || hasTouchCapability;
@@ -35,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS/.test(userAgent);
         isMobileSafari = isMobileFormFactor && isMobileAppleDevice && hasSafari && !isOtherIOSBrowser;
         document.body.classList.toggle('mobile-mode', isMobileSafari);
+        applyZoom();
     };
 
     function createFeature(material) {
@@ -45,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getCell(row, col) {
-        if (row < 1 || col < 1 || row > GRID_ROWS || col > GRID_COLS) {
+        if (row < 1 || col < 1 || row > gridRows || col > gridCols) {
             return null;
         }
         return lawn.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
@@ -57,21 +70,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function paintMaterial(cell, material) {
-        if (material === 'door') {
-            const row = Number(cell.dataset.row);
-            const col = Number(cell.dataset.col);
-            for (let offset = 0; offset < DOOR_SPAN; offset++) {
-                const doorCell = getCell(row, col + offset);
-                if (!doorCell) {
-                    continue;
-                }
-                clearCell(doorCell);
-                doorCell.classList.add('has-door-top');
-            }
+        if (!cell) {
             return;
         }
 
         clearCell(cell);
+
+        if (material === 'door') {
+            cell.classList.add('has-door-top');
+            return;
+        }
+
         cell.appendChild(createFeature(material));
     }
 
@@ -110,33 +119,38 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function applyGridSizing() {
+        lawn.style.setProperty('--grid-cols', gridCols);
+        lawn.style.setProperty('--grid-rows', gridRows);
+        gridShell.style.setProperty('--grid-cols', gridCols);
+        gridShell.style.setProperty('--grid-rows', gridRows);
+    }
+
     function buildRulers() {
-        for (let col = 1; col <= GRID_COLS; col++) {
+        topRuler.innerHTML = '';
+        leftRuler.innerHTML = '';
+
+        for (let col = 1; col <= gridCols; col++) {
             const tick = document.createElement('span');
             tick.textContent = col;
             topRuler.appendChild(tick);
         }
 
-        for (let row = 1; row <= GRID_ROWS; row++) {
+        for (let row = 1; row <= gridRows; row++) {
             const tick = document.createElement('span');
             tick.textContent = row;
             leftRuler.appendChild(tick);
         }
     }
 
-    function applyGridSizing() {
-        lawn.style.setProperty('--grid-cols', GRID_COLS);
-        lawn.style.setProperty('--grid-rows', GRID_ROWS);
-        gridShell.style.setProperty('--grid-cols', GRID_COLS);
-        gridShell.style.setProperty('--grid-rows', GRID_ROWS);
-    }
-
     function buildGrid() {
+        lawn.innerHTML = '';
+        const totalCells = gridCols * gridRows;
         const fragment = document.createDocumentFragment();
 
-        for (let i = 0; i < TOTAL_CELLS; i++) {
-            const row = Math.floor(i / GRID_COLS) + 1;
-            const col = (i % GRID_COLS) + 1;
+        for (let i = 0; i < totalCells; i++) {
+            const row = Math.floor(i / gridCols) + 1;
+            const col = (i % gridCols) + 1;
             const cell = document.createElement('div');
             cell.classList.add('cell');
             cell.dataset.row = row;
@@ -145,6 +159,32 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         lawn.appendChild(fragment);
+    }
+
+    function updateCanvasSize() {
+        const nextCols = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(canvasWidthInput.value) || gridCols));
+        const nextRows = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(canvasHeightInput.value) || gridRows));
+        gridCols = nextCols;
+        gridRows = nextRows;
+        canvasWidthInput.value = String(gridCols);
+        canvasHeightInput.value = String(gridRows);
+        applyGridSizing();
+        buildGrid();
+        buildRulers();
+    }
+
+    function applyZoom() {
+        const baseCellSize = document.body.classList.contains('mobile-mode')
+            ? BASE_CELL_SIZE_MOBILE
+            : BASE_CELL_SIZE_DESKTOP;
+        const effectiveCellSize = Math.round(baseCellSize * zoomLevel);
+        document.documentElement.style.setProperty('--cell-size', `${effectiveCellSize}px`);
+        zoomResetBtn.textContent = `${Math.round(zoomLevel * 100)}%`;
+    }
+
+    function setZoom(nextZoom) {
+        zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom));
+        applyZoom();
     }
 
     function loadSketchLayout() {
@@ -241,6 +281,12 @@ document.addEventListener("DOMContentLoaded", () => {
         loadSketchLayout();
     });
 
+    applyCanvasBtn.addEventListener('click', updateCanvasSize);
+
+    zoomInBtn.addEventListener('click', () => setZoom(zoomLevel + ZOOM_STEP));
+    zoomOutBtn.addEventListener('click', () => setZoom(zoomLevel - ZOOM_STEP));
+    zoomResetBtn.addEventListener('click', () => setZoom(1));
+
     lawn.addEventListener('click', (e) => {
         const cell = e.target.closest('.cell');
 
@@ -322,5 +368,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setCurrentMobileAction(currentMobileAction);
     setCurrentMaterial(currentMaterial);
     setDesignMode('deck');
+    setZoom(1);
     syncExportButtonLocation();
 });
