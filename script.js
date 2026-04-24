@@ -32,6 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvasHeightInput = document.getElementById('canvas-height');
     const applyCanvasBtn = document.getElementById('apply-canvas-btn');
     const paintBehaviorInputs = document.querySelectorAll('input[name="paint-behavior"]');
+    const tileCoverageInputs = document.querySelectorAll('input[name="tile-coverage"]');
+    const customCoverageInputWrap = document.querySelector('.custom-coverage-input-wrap');
+    const customCoverageInput = document.getElementById('custom-coverage-input');
+    const fillOriginControls = document.getElementById('fill-origin-controls');
+    const fillOriginInputs = document.querySelectorAll('input[name="fill-origin"]');
     const clearMeasurementsBtn = document.getElementById('clear-measurements-btn');
     const undoBtn = document.getElementById('undo-btn');
     const redoBtn = document.getElementById('redo-btn');
@@ -55,6 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let measurementModeEnabled = false;
     let measurementStartCell = null;
     let currentBackground = 'grassyard';
+    let coveragePreset = '100';
+    let customCoverageValue = 75;
+    let fillOrigin = 'top';
     const undoStack = [];
     const redoStack = [];
 
@@ -104,26 +112,152 @@ document.addEventListener('DOMContentLoaded', () => {
         return feature;
     }
 
+    function normalizeCoveragePercent(value) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) {
+            return 100;
+        }
+        return Math.max(1, Math.min(100, Math.round(parsed)));
+    }
+
+    function normalizeFillOrigin(value) {
+        const allowedOrigins = new Set(['top', 'bottom', 'center']);
+        return allowedOrigins.has(value) ? value : 'top';
+    }
+
+    function normalizeLayer(rawLayer) {
+        if (!rawLayer || typeof rawLayer !== 'object') {
+            return null;
+        }
+        const material = normalizeMaterial(rawLayer.material);
+        if (!material) {
+            return null;
+        }
+        return {
+            material,
+            textureSize: getValidatedTextureSize(material, rawLayer.textureSize) || null,
+            coveragePercent: normalizeCoveragePercent(rawLayer.coveragePercent ?? 100),
+            origin: normalizeFillOrigin(rawLayer.origin || 'top')
+        };
+    }
+
+    function setCellLayers(cell, layers) {
+        const normalizedLayers = (layers || []).map(normalizeLayer).filter(Boolean);
+        cell.dataset.layers = JSON.stringify(normalizedLayers);
+    }
+
+    function getCellLayers(cell) {
+        if (!cell?.dataset?.layers) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(cell.dataset.layers);
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+            return parsed.map(normalizeLayer).filter(Boolean);
+        } catch (error) {
+            console.warn('Could not parse cell layers', error);
+            return [];
+        }
+    }
+
+    function getLayerClipPath(coveragePercent, origin) {
+        const coverage = normalizeCoveragePercent(coveragePercent);
+        const hidden = 100 - coverage;
+        const normalizedOrigin = normalizeFillOrigin(origin);
+
+        if (coverage === 100) {
+            return 'inset(0 0 0 0)';
+        }
+        if (normalizedOrigin === 'bottom') {
+            return `inset(${hidden}% 0 0 0)`;
+        }
+        if (normalizedOrigin === 'center') {
+            const halfHidden = hidden / 2;
+            return `inset(${halfHidden}% 0 ${halfHidden}% 0)`;
+        }
+        return `inset(0 0 ${hidden}% 0)`;
+    }
+
+    function renderCellLayers(cell) {
+        const layers = getCellLayers(cell);
+        cell.innerHTML = '';
+        cell.classList.remove('has-door-top');
+
+        layers.forEach((layer, index) => {
+            if (layer.material === 'door') {
+                cell.classList.add('has-door-top');
+                return;
+            }
+
+            const feature = createFeature(layer.material, layer.textureSize);
+            feature.style.clipPath = getLayerClipPath(layer.coveragePercent, layer.origin);
+            feature.style.zIndex = String(index + 1);
+            feature.dataset.coveragePercent = String(layer.coveragePercent);
+            feature.dataset.fillOrigin = layer.origin;
+            cell.appendChild(feature);
+        });
+    }
+
     function clearCell(cell) {
         cell.innerHTML = '';
         cell.classList.remove('has-door-top');
+        delete cell.dataset.layers;
     }
 
-    function paintMaterial(cell, material, textureSize = null) {
+    function paintMaterial(cell, material, textureSize = null, options = {}) {
         if (!cell) {
             return;
         }
 
-        const normalizedMaterial = normalizeMaterial(material);
-        clearCell(cell);
-
-        if (normalizedMaterial === 'door') {
-            cell.classList.add('has-door-top');
+        const nextLayer = normalizeLayer({
+            material: normalizeMaterial(material),
+            textureSize,
+            coveragePercent: options.coveragePercent ?? 100,
+            origin: options.origin ?? 'top'
+        });
+        if (!nextLayer) {
             return;
         }
 
-        const validatedTextureSize = getValidatedTextureSize(normalizedMaterial, textureSize);
-        cell.appendChild(createFeature(normalizedMaterial, validatedTextureSize));
+        const replaceExisting = nextLayer.material === 'door' || nextLayer.coveragePercent === 100;
+        const layers = replaceExisting ? [] : getCellLayers(cell);
+        layers.push(nextLayer);
+        setCellLayers(cell, layers);
+        renderCellLayers(cell);
+    }
+
+    function parseSerializedEntry(entry) {
+        if (Array.isArray(entry)) {
+            const [row, col, material, textureSize = null] = entry;
+            return {
+                row: Number(row),
+                col: Number(col),
+                layers: [{ material, textureSize, coveragePercent: 100, origin: 'top' }]
+            };
+        }
+
+        if (entry && typeof entry === 'object' && Array.isArray(entry.layers)) {
+            return {
+                row: Number(entry.row),
+                col: Number(entry.col),
+                layers: entry.layers
+            };
+        }
+
+        return null;
+    }
+
+    function hydrateCellWithLayers(cell, layers) {
+        const normalizedLayers = (layers || []).map(normalizeLayer).filter(Boolean);
+        if (!normalizedLayers.length) {
+            clearCell(cell);
+            return;
+        }
+        setCellLayers(cell, normalizedLayers);
+        renderCellLayers(cell);
     }
 
     function serializeGrid() {
@@ -131,24 +265,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const entries = [];
 
         cells.forEach((cell) => {
-            if (cell.classList.contains('has-door-top')) {
-                entries.push([Number(cell.dataset.row), Number(cell.dataset.col), 'door']);
-                return;
-            }
-
-            const feature = cell.querySelector('.feature');
-            if (feature?.dataset.material) {
-                entries.push([
-                    Number(cell.dataset.row),
-                    Number(cell.dataset.col),
-                    feature.dataset.material,
-                    feature.dataset.textureSize || null
-                ]);
+            const layers = getCellLayers(cell);
+            if (layers.length) {
+                entries.push({
+                    row: Number(cell.dataset.row),
+                    col: Number(cell.dataset.col),
+                    layers
+                });
             }
         });
 
         return {
-            version: 2,
+            version: 3,
             cols: gridCols,
             rows: gridRows,
             zoomLevel,
@@ -187,10 +315,13 @@ document.addEventListener('DOMContentLoaded', () => {
             buildRulers();
 
             parsed.entries.forEach((entry) => {
-                const [row, col, material, textureSize = null] = entry;
-                const cell = lawn.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                const serializedEntry = parseSerializedEntry(entry);
+                if (!serializedEntry) {
+                    return;
+                }
+                const cell = lawn.querySelector(`.cell[data-row="${serializedEntry.row}"][data-col="${serializedEntry.col}"]`);
                 if (cell) {
-                    paintMaterial(cell, material, textureSize);
+                    hydrateCellWithLayers(cell, serializedEntry.layers);
                 }
             });
             if (Array.isArray(parsed.measurements)) {
@@ -237,6 +368,44 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.toggle('is-active', button.dataset.material === nextMaterial);
         });
         syncTextureSizeControls();
+    }
+
+    function getCurrentCoveragePercent() {
+        if (coveragePreset === 'custom') {
+            return normalizeCoveragePercent(customCoverageValue);
+        }
+        return normalizeCoveragePercent(coveragePreset);
+    }
+
+    function refreshCoverageControls() {
+        const isCustom = coveragePreset === 'custom';
+        const coveragePercent = getCurrentCoveragePercent();
+        customCoverageInputWrap.classList.toggle('is-hidden', !isCustom);
+        fillOriginControls.classList.toggle('is-hidden', coveragePercent === 100);
+        if (isCustom) {
+            customCoverageInput.value = String(coveragePercent);
+        }
+    }
+
+    function setCoveragePreset(nextPreset) {
+        coveragePreset = nextPreset;
+        tileCoverageInputs.forEach((input) => {
+            input.checked = input.value === nextPreset;
+        });
+        refreshCoverageControls();
+    }
+
+    function setCustomCoverageValue(nextValue) {
+        customCoverageValue = normalizeCoveragePercent(nextValue);
+        customCoverageInput.value = String(customCoverageValue);
+        refreshCoverageControls();
+    }
+
+    function setFillOrigin(nextOrigin) {
+        fillOrigin = normalizeFillOrigin(nextOrigin);
+        fillOriginInputs.forEach((input) => {
+            input.checked = input.value === fillOrigin;
+        });
     }
 
     function syncTextureSizeControls() {
@@ -295,10 +464,13 @@ document.addEventListener('DOMContentLoaded', () => {
         buildRulers();
 
         state.entries.forEach((entry) => {
-            const [row, col, material, textureSize = null] = entry;
-            const cell = lawn.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const serializedEntry = parseSerializedEntry(entry);
+            if (!serializedEntry) {
+                return;
+            }
+            const cell = lawn.querySelector(`.cell[data-row="${serializedEntry.row}"][data-col="${serializedEntry.col}"]`);
             if (cell) {
-                paintMaterial(cell, material, textureSize);
+                hydrateCellWithLayers(cell, serializedEntry.layers);
             }
         });
 
@@ -438,7 +610,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const sizeSelection = SIZE_VARIANT_MATERIALS.has(currentMaterial) ? currentTextureSize : null;
-        paintMaterial(targetCell, currentMaterial, sizeSelection);
+        paintMaterial(targetCell, currentMaterial, sizeSelection, {
+            coveragePercent: getCurrentCoveragePercent(),
+            origin: fillOrigin
+        });
     }
 
     function handleRemove(targetCell) {
@@ -721,6 +896,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    tileCoverageInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            if (!input.checked) {
+                return;
+            }
+            setCoveragePreset(input.value);
+        });
+    });
+
+    customCoverageInput.addEventListener('input', () => {
+        setCoveragePreset('custom');
+        setCustomCoverageValue(customCoverageInput.value);
+    });
+
+    customCoverageInput.addEventListener('blur', () => {
+        setCustomCoverageValue(customCoverageInput.value);
+    });
+
+    fillOriginInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            if (!input.checked) {
+                return;
+            }
+            setFillOrigin(input.value);
+        });
+    });
+
     applyCanvasBtn.addEventListener('click', () => {
         pushUndoState();
         updateCanvasSize();
@@ -935,6 +1137,9 @@ document.addEventListener('DOMContentLoaded', () => {
     buildRulers();
     setCurrentMobileAction(currentMobileAction);
     setCurrentMaterial(currentMaterial);
+    setCoveragePreset(coveragePreset);
+    setCustomCoverageValue(customCoverageValue);
+    setFillOrigin(fillOrigin);
     setMaterialsVisibility(false);
     setMeasurementMode(false);
     setZoom(1);

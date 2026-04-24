@@ -48,6 +48,28 @@
             </div>
 
             <div class="panel-group">
+                <h2>Tile Coverage</h2>
+                <div class="tile-coverage-controls">
+                    <div class="tile-coverage-presets" role="radiogroup" aria-label="Tile coverage amount">
+                        <label><input type="radio" name="tile-coverage" value="25"> 25%</label>
+                        <label><input type="radio" name="tile-coverage" value="50"> 50%</label>
+                        <label><input type="radio" name="tile-coverage" value="100" checked> 100%</label>
+                        <label><input type="radio" name="tile-coverage" value="custom"> Custom</label>
+                    </div>
+                    <label for="custom-coverage-input" class="custom-coverage-input-wrap is-hidden">
+                        Custom %
+                        <input id="custom-coverage-input" type="number" min="1" max="100" step="1" value="75">
+                    </label>
+                    <div id="fill-origin-controls" class="fill-origin-controls is-hidden" role="radiogroup" aria-label="Fill direction">
+                        <span>Fill from</span>
+                        <label><input type="radio" name="fill-origin" value="top" checked> Top</label>
+                        <label><input type="radio" name="fill-origin" value="bottom"> Bottom</label>
+                        <label><input type="radio" name="fill-origin" value="center"> Center</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-group">
                 <h2>Canvas Background</h2>
                 <button id="toggle-background-controls-btn" type="button">Change Background</button>
                 <div id="background-controls" class="background-controls is-hidden">
