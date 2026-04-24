@@ -375,11 +375,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setActiveMaterialCategory(categoryName) {
         categoryButtons.forEach((button) => {
-            button.classList.toggle('is-active', button.dataset.category === categoryName);
+            const isActive = button.dataset.category === categoryName;
+            button.classList.toggle('is-active', isActive);
+            button.setAttribute('aria-selected', String(isActive));
+            button.setAttribute('tabindex', isActive ? '0' : '-1');
         });
         categoryPanels.forEach((panel) => {
-            panel.classList.toggle('is-hidden', panel.dataset.categoryPanel !== categoryName);
+            const shouldHide = panel.dataset.categoryPanel !== categoryName;
+            panel.classList.toggle('is-hidden', shouldHide);
+            panel.setAttribute('aria-hidden', String(shouldHide));
         });
+    }
+
+    function handleCategoryToggle(categoryName) {
+        if (!categoryName) {
+            return;
+        }
+        setActiveMaterialCategory(categoryName);
     }
 
     function getCurrentCoveragePercent() {
@@ -888,7 +900,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     categoryButtons.forEach((button) => {
-        button.addEventListener('click', () => setActiveMaterialCategory(button.dataset.category));
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', String(button.classList.contains('is-active')));
+        button.addEventListener('click', () => handleCategoryToggle(button.dataset.category));
+        button.addEventListener('pointerup', () => handleCategoryToggle(button.dataset.category));
+    });
+
+    categoryPanels.forEach((panel) => {
+        panel.setAttribute('role', 'tabpanel');
+        panel.setAttribute('aria-hidden', String(panel.classList.contains('is-hidden')));
     });
 
     document.querySelectorAll('.palette-btn').forEach((button) => {

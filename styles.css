@@ -755,6 +755,8 @@ body.mobile-mode .mobile-export-slot {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.4rem;
     margin-bottom: 0.55rem;
+    position: relative;
+    z-index: 2;
 }
 
 .category-btn {
@@ -763,6 +765,7 @@ body.mobile-mode .mobile-export-slot {
     background: #1e293b;
     border: 1px solid #475569;
     color: #cbd5e1;
+    touch-action: manipulation;
 }
 
 .category-btn.is-active {
@@ -783,7 +786,11 @@ body.mobile-mode .mobile-export-slot {
     background-color: #0ea5e9;
     background-image:
         radial-gradient(circle at 25% 28%, rgba(255, 255, 255, 0.35) 0 9%, transparent 10%),
-        repeating-linear-gradient(110deg, rgba(2, 132, 199, 0.35) 0 12%, rgba(59, 130, 246, 0.2) 12% 24%, transparent 24% 32%);
+        radial-gradient(circle at 72% 66%, rgba(186, 230, 253, 0.2) 0 8%, transparent 9%),
+        repeating-linear-gradient(110deg, rgba(2, 132, 199, 0.35) 0 12%, rgba(59, 130, 246, 0.2) 12% 24%, transparent 24% 32%),
+        linear-gradient(145deg, #38bdf8, #1d4ed8);
+    background-size: 26px 26px, 24px 24px, 36px 36px, 100% 100%;
+    background-position: 0 0, 12px 12px, 0 0, 0 0;
 }
 
 .lawn-grid[data-background="snowfield"] {
@@ -791,14 +798,20 @@ body.mobile-mode .mobile-export-slot {
     background-image:
         radial-gradient(circle at 22% 20%, rgba(255, 255, 255, 0.9) 0 8%, transparent 9%),
         radial-gradient(circle at 72% 68%, rgba(148, 163, 184, 0.22) 0 10%, transparent 11%),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.2) 0 2px, transparent 2px 16px),
         linear-gradient(145deg, #f8fafc, #cbd5e1);
+    background-size: 30px 30px, 34px 34px, 18px 18px, 100% 100%;
+    background-position: 0 0, 14px 10px, 0 0, 0 0;
 }
 
 .lawn-grid[data-background="wooddeckbg"] {
     background-color: #7c2d12;
     background-image:
         repeating-linear-gradient(90deg, rgba(120, 53, 15, 0.5) 0 9px, rgba(251, 191, 36, 0.12) 9px 10px, rgba(127, 29, 29, 0.45) 10px 19px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 22px),
         linear-gradient(145deg, #7c2d12, #431407);
+    background-size: 24px 24px, 100% 24px, 100% 100%;
+    background-position: 0 0, 0 0, 0 0;
 }
 
 .mulch-feature {
