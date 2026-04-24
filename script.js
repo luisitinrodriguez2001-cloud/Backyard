@@ -32,6 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvasHeightInput = document.getElementById('canvas-height');
     const applyCanvasBtn = document.getElementById('apply-canvas-btn');
     const paintBehaviorInputs = document.querySelectorAll('input[name="paint-behavior"]');
+    const clearMeasurementsBtn = document.getElementById('clear-measurements-btn');
+    const undoBtn = document.getElementById('undo-btn');
+    const redoBtn = document.getElementById('redo-btn');
+    const toggleBackgroundControlsBtn = document.getElementById('toggle-background-controls-btn');
+    const backgroundControls = document.getElementById('background-controls');
+    const backgroundSelect = document.getElementById('background-select');
 
     let currentMobileAction = 'place';
     let currentMaterial = 'deck';
@@ -46,6 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let paintBehavior = 'drag';
     let measurementModeEnabled = false;
     let measurementStartCell = null;
+    let currentBackground = 'grassyard';
+    const undoStack = [];
+    const redoStack = [];
 
     const applyMobileMode = () => {
         const isMobileFormFactor = mobileMediaQuery.matches || hasTouchCapability;
@@ -125,10 +134,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         return {
-            version: 1,
+            version: 2,
             cols: gridCols,
             rows: gridRows,
             zoomLevel,
+            background: currentBackground,
+            measurements: serializeMeasurements(),
             entries
         };
     }
@@ -168,6 +179,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     paintMaterial(cell, material, textureSize);
                 }
             });
+            if (Array.isArray(parsed.measurements)) {
+                parsed.measurements.forEach((measurement) => {
+                    createMeasurementLineByCoords(
+                        measurement.startRow,
+                        measurement.startCol,
+                        measurement.endRow,
+                        measurement.endCol
+                    );
+                });
+            }
+            setCanvasBackground(parsed.background || currentBackground);
 
             if (typeof parsed.zoomLevel === 'number') {
                 setZoom(parsed.zoomLevel);
@@ -224,6 +246,80 @@ document.addEventListener('DOMContentLoaded', () => {
         lawn.style.setProperty('--grid-rows', gridRows);
         gridShell.style.setProperty('--grid-cols', gridCols);
         gridShell.style.setProperty('--grid-rows', gridRows);
+    }
+
+    function getStateSnapshot() {
+        return serializeGrid();
+    }
+
+    function updateHistoryButtons() {
+        undoBtn.disabled = undoStack.length === 0;
+        redoBtn.disabled = redoStack.length === 0;
+    }
+
+    function pushUndoState() {
+        undoStack.push(getStateSnapshot());
+        redoStack.length = 0;
+        updateHistoryButtons();
+    }
+
+    function restoreState(state) {
+        if (!state || !Array.isArray(state.entries)) {
+            return;
+        }
+
+        gridCols = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(state.cols) || gridCols));
+        gridRows = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(state.rows) || gridRows));
+        canvasWidthInput.value = String(gridCols);
+        canvasHeightInput.value = String(gridRows);
+        applyGridSizing();
+        buildGrid();
+        buildRulers();
+
+        state.entries.forEach((entry) => {
+            const [row, col, material, textureSize = null] = entry;
+            const cell = lawn.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            if (cell) {
+                paintMaterial(cell, material, textureSize);
+            }
+        });
+
+        if (Array.isArray(state.measurements)) {
+            state.measurements.forEach((measurement) => {
+                createMeasurementLineByCoords(
+                    measurement.startRow,
+                    measurement.startCol,
+                    measurement.endRow,
+                    measurement.endCol
+                );
+            });
+        }
+
+        setCanvasBackground(state.background || 'grassyard');
+        if (typeof state.zoomLevel === 'number') {
+            setZoom(state.zoomLevel);
+        }
+        saveGridToCache();
+    }
+
+    function undo() {
+        if (!undoStack.length) {
+            return;
+        }
+        redoStack.push(getStateSnapshot());
+        const previousState = undoStack.pop();
+        restoreState(previousState);
+        updateHistoryButtons();
+    }
+
+    function redo() {
+        if (!redoStack.length) {
+            return;
+        }
+        undoStack.push(getStateSnapshot());
+        const nextState = redoStack.pop();
+        restoreState(nextState);
+        updateHistoryButtons();
     }
 
     function buildRulers() {
@@ -384,17 +480,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createMeasurementLine(startCell, endCell) {
+        createMeasurementLineByCoords(
+            Number(startCell.dataset.row),
+            Number(startCell.dataset.col),
+            Number(endCell.dataset.row),
+            Number(endCell.dataset.col)
+        );
+    }
+
+    function createMeasurementLineByCoords(startRow, startCol, endRow, endCol) {
+        const startCell = lawn.querySelector(`.cell[data-row="${startRow}"][data-col="${startCol}"]`);
+        const endCell = lawn.querySelector(`.cell[data-row="${endRow}"][data-col="${endCol}"]`);
+        if (!startCell || !endCell) {
+            return;
+        }
+
         const layer = getMeasurementLayer();
         const start = getCellCenter(startCell);
         const end = getCellCenter(endCell);
-        const deltaCols = Number(endCell.dataset.col) - Number(startCell.dataset.col);
-        const deltaRows = Number(endCell.dataset.row) - Number(startCell.dataset.row);
+        const deltaCols = endCol - startCol;
+        const deltaRows = endRow - startRow;
         const distanceFeet = Math.hypot(deltaCols, deltaRows);
         const midX = (start.x + end.x) / 2;
         const midY = (start.y + end.y) / 2;
 
         const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         group.classList.add('measurement-item');
+        group.dataset.startRow = String(startRow);
+        group.dataset.startCol = String(startCol);
+        group.dataset.endRow = String(endRow);
+        group.dataset.endCol = String(endCol);
 
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(start.x));
@@ -421,12 +536,31 @@ document.addEventListener('DOMContentLoaded', () => {
         layer.appendChild(group);
     }
 
+    function serializeMeasurements() {
+        const layer = lawn.querySelector('.measurement-layer');
+        if (!layer) {
+            return [];
+        }
+        return Array.from(layer.querySelectorAll('.measurement-item')).map((item) => ({
+            startRow: Number(item.dataset.startRow),
+            startCol: Number(item.dataset.startCol),
+            endRow: Number(item.dataset.endRow),
+            endCol: Number(item.dataset.endCol)
+        }));
+    }
+
     function clearMeasurements() {
         const layer = lawn.querySelector('.measurement-layer');
         if (layer) {
             layer.innerHTML = '';
         }
         resetMeasurementSelection();
+    }
+
+    function setCanvasBackground(backgroundName) {
+        currentBackground = backgroundName;
+        lawn.dataset.background = backgroundName;
+        backgroundSelect.value = backgroundName;
     }
 
     function setMeasurementMode(nextEnabled) {
@@ -455,7 +589,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        pushUndoState();
         createMeasurementLine(measurementStartCell, cell);
+        saveGridToCache();
         resetMeasurementSelection();
     }
 
@@ -557,7 +693,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    applyCanvasBtn.addEventListener('click', updateCanvasSize);
+    applyCanvasBtn.addEventListener('click', () => {
+        pushUndoState();
+        updateCanvasSize();
+    });
+
+    toggleBackgroundControlsBtn.addEventListener('click', () => {
+        backgroundControls.classList.toggle('is-hidden');
+    });
+
+    backgroundSelect.addEventListener('change', () => {
+        pushUndoState();
+        setCanvasBackground(backgroundSelect.value);
+        saveGridToCache();
+    });
 
     gridShell.addEventListener('wheel', (event) => {
         event.preventDefault();
@@ -581,6 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        pushUndoState();
         lawn.setPointerCapture(event.pointerId);
         applyPointerAction(cell);
 
@@ -655,11 +805,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     clearBtn.addEventListener('click', () => {
+        pushUndoState();
         const cells = lawn.querySelectorAll('.cell');
         cells.forEach((cell) => clearCell(cell));
         clearMeasurements();
         saveGridToCache();
     });
+
+    clearMeasurementsBtn.addEventListener('click', () => {
+        pushUndoState();
+        clearMeasurements();
+        saveGridToCache();
+    });
+
+    undoBtn.addEventListener('click', undo);
+    redoBtn.addEventListener('click', redo);
 
     exportBtn.addEventListener('click', async () => {
         exportBtn.textContent = 'Generating...';
@@ -738,6 +898,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setCurrentMaterial(currentMaterial);
     setMeasurementMode(false);
     setZoom(1);
+    setCanvasBackground(currentBackground);
     syncExportButtonLocation();
     loadGridFromCache();
+    updateHistoryButtons();
 });

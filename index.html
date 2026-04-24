@@ -47,6 +47,20 @@
                 </div>
             </div>
 
+            <div class="panel-group">
+                <h2>Canvas Background</h2>
+                <button id="toggle-background-controls-btn" type="button">Change Background</button>
+                <div id="background-controls" class="background-controls is-hidden">
+                    <label for="background-select">Background style</label>
+                    <select id="background-select">
+                        <option value="grassyard">Grass Yard</option>
+                        <option value="sandlot">Sand Lot</option>
+                        <option value="stonepatio">Stone Patio</option>
+                        <option value="mulchbed">Mulch Bed</option>
+                    </select>
+                </div>
+            </div>
+
             <div id="material-palette" class="material-palette" aria-label="Backyard material palette">
                 <h2>Materials & Features</h2>
                 <div class="palette-grid">
@@ -55,9 +69,18 @@
                     <button class="palette-btn" data-material="grass">Grass</button>
                     <button class="palette-btn" data-material="landscaping">Landscaping Bed</button>
                     <button class="palette-btn" data-material="sand">Sand</button>
-                    <button class="palette-btn" data-material="seat">Seats</button>
+                    <button class="palette-btn" data-material="wood">Wood</button>
                     <button class="palette-btn" data-material="pavers">Pavers</button>
                     <button class="palette-btn" data-material="gravel">Gravel</button>
+                    <button class="palette-btn" data-material="water">Water</button>
+                    <button class="palette-btn" data-material="river-rocks">River Rocks</button>
+                    <button class="palette-btn" data-material="flowers">Flowers</button>
+                    <button class="palette-btn" data-material="bush-round">Round Bush</button>
+                    <button class="palette-btn" data-material="bush-hedge">Hedge Bush</button>
+                    <button class="palette-btn" data-material="sprinkler-head">Sprinkler Head</button>
+                    <button class="palette-btn" data-material="grill">Grill</button>
+                    <button class="palette-btn" data-material="brick">Brick Edging</button>
+                    <button class="palette-btn" data-material="plastic">Plastic Shed</button>
                     <button class="palette-btn" data-material="turf">Artificial Turf</button>
                     <button class="palette-btn" data-material="white-vinyl-fence">White Vinyl Fence (Top View)</button>
                     <button class="palette-btn" data-material="door">Door (1 ft)</button>
@@ -74,6 +97,9 @@
 
             <div class="button-group" id="desktop-controls">
                 <button id="measurements-btn">Show Measurements</button>
+                <button id="clear-measurements-btn">Reset Measurements</button>
+                <button id="undo-btn">Undo</button>
+                <button id="redo-btn">Redo</button>
                 <button id="export-btn" class="success-btn">Export Image</button>
                 <button id="clear-btn" class="danger-btn">Clear All</button>
             </div>
