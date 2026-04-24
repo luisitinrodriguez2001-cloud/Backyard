@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let zoomLevel = 1;
     let pointerAction = null;
     let pinchState = null;
+    let panState = null;
     let paintBehavior = 'drag';
     let measurementModeEnabled = false;
     let measurementStartCell = null;
@@ -278,16 +279,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyZoom() {
-        const baseCellSize = document.body.classList.contains('mobile-mode')
-            ? BASE_CELL_SIZE_MOBILE
-            : BASE_CELL_SIZE_DESKTOP;
-        const effectiveCellSize = Math.round(baseCellSize * zoomLevel);
+        const effectiveCellSize = getEffectiveCellSize(zoomLevel);
         document.documentElement.style.setProperty('--cell-size', `${effectiveCellSize}px`);
     }
 
-    function setZoom(nextZoom) {
+    function getEffectiveCellSize(zoom) {
+        const baseCellSize = document.body.classList.contains('mobile-mode')
+            ? BASE_CELL_SIZE_MOBILE
+            : BASE_CELL_SIZE_DESKTOP;
+        return Math.round(baseCellSize * zoom);
+    }
+
+    function setZoom(nextZoom, anchorClientPoint = null) {
+        const previousCellSize = getEffectiveCellSize(zoomLevel);
         zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom));
         applyZoom();
+
+        if (!anchorClientPoint || !previousCellSize) {
+            return;
+        }
+
+        const nextCellSize = getEffectiveCellSize(zoomLevel);
+        if (!nextCellSize || nextCellSize === previousCellSize) {
+            return;
+        }
+
+        const shellRect = gridShell.getBoundingClientRect();
+        const anchorX = anchorClientPoint.x - shellRect.left;
+        const anchorY = anchorClientPoint.y - shellRect.top;
+        const scaleRatio = nextCellSize / previousCellSize;
+
+        const contentX = gridShell.scrollLeft + anchorX;
+        const contentY = gridShell.scrollTop + anchorY;
+        const nextScrollLeft = (contentX * scaleRatio) - anchorX;
+        const nextScrollTop = (contentY * scaleRatio) - anchorY;
+
+        gridShell.scrollLeft = Math.max(0, nextScrollLeft);
+        gridShell.scrollTop = Math.max(0, nextScrollTop);
     }
 
     function handlePaint(targetCell) {
@@ -451,6 +479,38 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
     }
 
+    function beginPan(event) {
+        panState = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            startScrollLeft: gridShell.scrollLeft,
+            startScrollTop: gridShell.scrollTop
+        };
+        lawn.setPointerCapture(event.pointerId);
+        lawn.classList.add('is-panning');
+    }
+
+    function updatePan(event) {
+        if (!panState || panState.pointerId !== event.pointerId) {
+            return;
+        }
+
+        const deltaX = event.clientX - panState.startX;
+        const deltaY = event.clientY - panState.startY;
+        gridShell.scrollLeft = panState.startScrollLeft - deltaX;
+        gridShell.scrollTop = panState.startScrollTop - deltaY;
+    }
+
+    function endPan(pointerId = null) {
+        if (!panState || (pointerId !== null && panState.pointerId !== pointerId)) {
+            return;
+        }
+
+        panState = null;
+        lawn.classList.remove('is-panning');
+    }
+
     function bindMediaQueryChangeListener(mediaQueryList, handler) {
         if (typeof mediaQueryList.addEventListener === 'function') {
             mediaQueryList.addEventListener('change', handler);
@@ -502,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
     gridShell.addEventListener('wheel', (event) => {
         event.preventDefault();
         const direction = event.deltaY > 0 ? -1 : 1;
-        setZoom(zoomLevel + (direction * ZOOM_STEP_WHEEL));
+        setZoom(zoomLevel + (direction * ZOOM_STEP_WHEEL), { x: event.clientX, y: event.clientY });
     }, { passive: false });
 
     lawn.addEventListener('pointerdown', (event) => {
@@ -515,6 +575,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pointerAction = getPointerAction(event);
         if (!pointerAction) {
+            if (paintBehavior === 'off') {
+                beginPan(event);
+            }
             return;
         }
 
@@ -528,20 +591,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     lawn.addEventListener('pointermove', (event) => {
+        if (panState) {
+            updatePan(event);
+            return;
+        }
+
         if (!pointerAction || paintBehavior !== 'drag') {
             return;
         }
         applyPointerAction(readCellFromPointerEvent(event));
     });
 
-    lawn.addEventListener('pointerup', () => {
+    lawn.addEventListener('pointerup', (event) => {
+        endPan(event.pointerId);
         if (pointerAction) {
             saveGridToCache();
         }
         pointerAction = null;
     });
 
-    lawn.addEventListener('pointercancel', () => {
+    lawn.addEventListener('pointercancel', (event) => {
+        endPan(event.pointerId);
         pointerAction = null;
     });
 
@@ -570,7 +640,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const ratio = nextDistance / pinchState.distance;
-        setZoom(pinchState.zoom * ratio);
+        const midPoint = {
+            x: (event.touches[0].clientX + event.touches[1].clientX) / 2,
+            y: (event.touches[0].clientY + event.touches[1].clientY) / 2
+        };
+        setZoom(pinchState.zoom * ratio, midPoint);
     }, { passive: false });
 
     gridShell.addEventListener('touchend', () => {
