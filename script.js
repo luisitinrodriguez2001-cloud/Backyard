@@ -70,6 +70,16 @@ document.addEventListener('DOMContentLoaded', () => {
         grass: ['small', 'medium', 'large'],
         'white-vinyl-fence': ['small', 'medium', 'large']
     };
+    const MATERIAL_ALIASES = {
+        'bush-round': 'bush',
+        'bush-hedge': 'bush',
+        brick: 'edging',
+        'brick-edging': 'edging'
+    };
+
+    function normalizeMaterial(material) {
+        return MATERIAL_ALIASES[material] || material;
+    }
 
     function getValidatedTextureSize(material, requestedSize) {
         const options = SIZE_VARIANTS_BY_MATERIAL[material];
@@ -81,12 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createFeature(material, textureSize = null) {
+        const normalizedMaterial = normalizeMaterial(material);
         const feature = document.createElement('div');
-        feature.classList.add('feature', `${material}-feature`);
-        feature.dataset.material = material;
+        feature.classList.add('feature', `${normalizedMaterial}-feature`);
+        feature.dataset.material = normalizedMaterial;
         if (textureSize) {
             feature.dataset.textureSize = textureSize;
-            feature.classList.add(`${material}-size-${textureSize}`);
+            feature.classList.add(`${normalizedMaterial}-size-${textureSize}`);
         }
         return feature;
     }
@@ -101,15 +112,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const normalizedMaterial = normalizeMaterial(material);
         clearCell(cell);
 
-        if (material === 'door') {
+        if (normalizedMaterial === 'door') {
             cell.classList.add('has-door-top');
             return;
         }
 
-        const validatedTextureSize = getValidatedTextureSize(material, textureSize);
-        cell.appendChild(createFeature(material, validatedTextureSize));
+        const validatedTextureSize = getValidatedTextureSize(normalizedMaterial, textureSize);
+        cell.appendChild(createFeature(normalizedMaterial, validatedTextureSize));
     }
 
     function serializeGrid() {
@@ -559,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setCanvasBackground(backgroundName) {
         currentBackground = backgroundName;
-        lawn.dataset.background = backgroundName;
+        gridShell.dataset.background = backgroundName;
         backgroundSelect.value = backgroundName;
     }
 

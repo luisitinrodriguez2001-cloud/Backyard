@@ -82,12 +82,14 @@ input {
 button {
     width: 100%;
     padding: 0.75rem;
-    border: none;
+    border: 1px solid #475569;
     border-radius: 8px;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    background: #1e293b;
+    color: #cbd5e1;
 }
 
 button:active {
@@ -269,7 +271,12 @@ button:active {
     position: relative;
     padding: 12px;
     border-radius: 12px;
-    background: #1f2937;
+    background-color: #2d4c1e;
+    background-image:
+        radial-gradient(#3a5e28 15%, transparent 16%),
+        radial-gradient(#3a5e28 15%, transparent 16%);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
     border: 4px solid #111827;
     overflow: auto;
     max-height: calc(100vh - 7rem);
@@ -277,44 +284,39 @@ button:active {
     touch-action: none;
 }
 
-.lawn-grid {
-    display: grid;
-    grid-template-columns: repeat(var(--grid-cols), var(--cell-size));
-    grid-template-rows: repeat(var(--grid-rows), var(--cell-size));
-    background-color: #2d4c1e;
-    background-image:
-        radial-gradient(#3a5e28 15%, transparent 16%),
-        radial-gradient(#3a5e28 15%, transparent 16%);
-    background-size: 20px 20px;
-    background-position: 0 0, 10px 10px;
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
-}
-
-.lawn-grid[data-background="grassyard"] {
+.grid-shell[data-background="grassyard"] {
     background-color: #2d4c1e;
     background-image:
         radial-gradient(#3a5e28 15%, transparent 16%),
         radial-gradient(#3a5e28 15%, transparent 16%);
 }
 
-.lawn-grid[data-background="sandlot"] {
+.grid-shell[data-background="sandlot"] {
     background-color: #c7a86d;
     background-image:
         radial-gradient(rgba(255, 255, 255, 0.24) 12%, transparent 13%),
         radial-gradient(rgba(85, 56, 25, 0.17) 12%, transparent 13%);
 }
 
-.lawn-grid[data-background="stonepatio"] {
+.grid-shell[data-background="stonepatio"] {
     background-color: #7d8288;
     background-image:
         linear-gradient(90deg, rgba(255, 255, 255, 0.13) 1px, transparent 1px),
         linear-gradient(0deg, rgba(255, 255, 255, 0.13) 1px, transparent 1px);
 }
 
-.lawn-grid[data-background="mulchbed"] {
+.grid-shell[data-background="mulchbed"] {
     background-color: #5a3d27;
     background-image:
         repeating-linear-gradient(45deg, rgba(30, 18, 10, 0.34) 0 3px, rgba(127, 84, 54, 0.2) 3px 7px);
+}
+
+.lawn-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--grid-cols), var(--cell-size));
+    grid-template-rows: repeat(var(--grid-rows), var(--cell-size));
+    background: transparent;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
 .lawn-grid.is-panning {
@@ -470,18 +472,11 @@ button:active {
         linear-gradient(145deg, #2f7e33, #1f5d24);
 }
 
-.bush-round-feature {
+.bush-feature {
     border-radius: 50%;
     background-image:
         radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.2) 0 15%, transparent 16%),
         linear-gradient(145deg, #3f8f3e, #1f5d24);
-}
-
-.bush-hedge-feature {
-    border-radius: 2px;
-    background-image:
-        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0 16%, rgba(0, 0, 0, 0.12) 16% 20%, transparent 20% 36%),
-        linear-gradient(145deg, #2f7e33, #1f5d24);
 }
 
 .sprinkler-head-feature {
@@ -491,6 +486,7 @@ button:active {
 }
 
 .grill-feature {
+    background-color: #4b5563;
     background-image:
         linear-gradient(0deg, rgba(17, 24, 39, 0.86), rgba(17, 24, 39, 0.86)),
         repeating-linear-gradient(90deg, transparent 0 18%, rgba(203, 213, 225, 0.3) 18% 22%, transparent 22% 40%),
@@ -498,7 +494,8 @@ button:active {
     border-radius: 2px;
 }
 
-.brick-feature {
+.edging-feature {
+    background-color: #b45309;
     background-image:
         repeating-linear-gradient(0deg, rgba(120, 53, 15, 0.35) 0 44%, rgba(254, 215, 170, 0.3) 44% 48%, transparent 48% 100%),
         repeating-linear-gradient(90deg, rgba(120, 53, 15, 0.2) 0 46%, rgba(254, 215, 170, 0.28) 46% 50%, transparent 50% 100%),
