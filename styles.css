@@ -253,6 +253,28 @@ button:active {
     color: #bfdbfe;
 }
 
+
+.materials-subheading {
+    font-size: 0.75rem;
+    color: #93c5fd;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.35rem;
+}
+
+.materials-divider {
+    border-top: 1px solid #475569;
+    margin: 0.65rem 0 0.55rem;
+}
+
+.materials-subheading--materials {
+    margin-bottom: 0.45rem;
+}
+
+.material-category-tabs {
+    margin-bottom: 0.15rem;
+}
+
 .palette-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

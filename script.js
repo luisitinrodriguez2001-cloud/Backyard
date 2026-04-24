@@ -419,8 +419,28 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshCoverageControls();
     }
 
-    function setCustomCoverageValue(nextValue) {
-        customCoverageValue = normalizeCoveragePercent(nextValue);
+    function setCustomCoverageValue(nextValue, options = {}) {
+        const { preserveInput = false } = options;
+        const rawValue = typeof nextValue === 'string' ? nextValue.trim() : String(nextValue);
+
+        if (rawValue === '') {
+            if (!preserveInput) {
+                customCoverageInput.value = String(customCoverageValue);
+            }
+            refreshCoverageControls();
+            return;
+        }
+
+        const parsed = Number(rawValue);
+        if (!Number.isFinite(parsed)) {
+            if (!preserveInput) {
+                customCoverageInput.value = String(customCoverageValue);
+            }
+            refreshCoverageControls();
+            return;
+        }
+
+        customCoverageValue = normalizeCoveragePercent(parsed);
         customCoverageInput.value = String(customCoverageValue);
         refreshCoverageControls();
     }
@@ -953,7 +973,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     customCoverageInput.addEventListener('input', () => {
         setCoveragePreset('custom');
-        setCustomCoverageValue(customCoverageInput.value);
+        setCustomCoverageValue(customCoverageInput.value, { preserveInput: true });
     });
 
     customCoverageInput.addEventListener('change', () => {
