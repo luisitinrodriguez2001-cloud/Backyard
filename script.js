@@ -849,6 +849,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return measurementModeEnabled && paintBehavior === 'off';
     }
 
+    function isZoomInteractionEnabled() {
+        return paintBehavior === 'off';
+    }
+
     function handleMeasurementClick(cell) {
         if (!measurementModeEnabled || !cell) {
             return;
@@ -978,9 +982,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             paintBehavior = input.value;
             pointerAction = null;
-            if (paintBehavior === 'off') {
-                resetMeasurementSelection();
-            }
+            endPan();
         });
     });
 
@@ -1048,6 +1050,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gridShell.addEventListener('wheel', (event) => {
         event.preventDefault();
+        if (!isZoomInteractionEnabled()) {
+            return;
+        }
+
         const direction = event.deltaY > 0 ? -1 : 1;
         setZoom(zoomLevel + (direction * ZOOM_STEP_WHEEL), { x: event.clientX, y: event.clientY });
     }, { passive: false });
@@ -1108,6 +1114,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     gridShell.addEventListener('touchstart', (event) => {
+        if (!isZoomInteractionEnabled()) {
+            pinchState = null;
+            return;
+        }
+
         if (event.touches.length === 2) {
             pinchState = {
                 distance: getPinchDistance(event.touches[0], event.touches[1]),
@@ -1117,6 +1128,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { passive: false });
 
     gridShell.addEventListener('touchmove', (event) => {
+        if (!isZoomInteractionEnabled()) {
+            pinchState = null;
+            return;
+        }
+
         if (event.touches.length !== 2 || !pinchState) {
             return;
         }
