@@ -1135,8 +1135,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const width = state.cols * exportCellSize;
         const height = state.rows * exportCellSize;
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+        // Add a 1px bleed so the final right/bottom grid stroke is not clipped.
+        canvas.width = width + 1;
+        canvas.height = height + 1;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
             throw new Error('Canvas rendering unavailable');
