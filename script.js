@@ -611,6 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyZoom() {
         const effectiveCellSize = getEffectiveCellSize(zoomLevel);
         document.documentElement.style.setProperty('--cell-size', `${effectiveCellSize}px`);
+        redrawMeasurements();
     }
 
     function getEffectiveCellSize(zoom) {
@@ -779,6 +780,24 @@ document.addEventListener('DOMContentLoaded', () => {
         layer.appendChild(group);
     }
 
+    function redrawMeasurements() {
+        const layer = lawn.querySelector('.measurement-layer');
+        if (!layer) {
+            return;
+        }
+
+        const measurements = serializeMeasurements();
+        layer.innerHTML = '';
+        measurements.forEach((measurement) => {
+            createMeasurementLineByCoords(
+                measurement.startRow,
+                measurement.startCol,
+                measurement.endRow,
+                measurement.endCol
+            );
+        });
+    }
+
     function serializeMeasurements() {
         const layer = lawn.querySelector('.measurement-layer');
         if (!layer) {
@@ -824,6 +843,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!measurementModeEnabled) {
             resetMeasurementSelection();
         }
+    }
+
+    function isMeasurementInteractionPaused() {
+        return measurementModeEnabled && paintBehavior === 'off';
     }
 
     function handleMeasurementClick(cell) {
@@ -955,6 +978,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             paintBehavior = input.value;
             pointerAction = null;
+            if (paintBehavior === 'off') {
+                resetMeasurementSelection();
+            }
         });
     });
 
@@ -1029,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lawn.addEventListener('pointerdown', (event) => {
         const cell = readCellFromPointerEvent(event);
 
-        if (measurementModeEnabled) {
+        if (measurementModeEnabled && !isMeasurementInteractionPaused()) {
             handleMeasurementClick(cell);
             return;
         }
