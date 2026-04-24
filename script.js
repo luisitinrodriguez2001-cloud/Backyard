@@ -26,12 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const textureSizeTitle = document.getElementById('texture-size-title');
     const textureSizeInputs = document.querySelectorAll('input[name="texture-size"]');
     const measurementsBtn = document.getElementById('measurements-btn');
-    const loadLastDesignBtn = document.getElementById('load-last-design-btn');
     const topRuler = document.getElementById('top-ruler');
     const leftRuler = document.getElementById('left-ruler');
     const canvasWidthInput = document.getElementById('canvas-width');
     const canvasHeightInput = document.getElementById('canvas-height');
     const applyCanvasBtn = document.getElementById('apply-canvas-btn');
+    const paintBehaviorInputs = document.querySelectorAll('input[name="paint-behavior"]');
 
     let currentMobileAction = 'place';
     let currentMaterial = 'deck';
@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let zoomLevel = 1;
     let pointerAction = null;
     let pinchState = null;
+    let paintBehavior = 'drag';
+    let measurementModeEnabled = false;
+    let measurementStartCell = null;
 
     const applyMobileMode = () => {
         const isMobileFormFactor = mobileMediaQuery.matches || hasTouchCapability;
@@ -241,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildGrid() {
         lawn.innerHTML = '';
+        resetMeasurementSelection();
         const totalCells = gridCols * gridRows;
         const fragment = document.createDocumentFragment();
 
@@ -255,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         lawn.appendChild(fragment);
+        getMeasurementLayer();
     }
 
     function updateCanvasSize() {
@@ -319,6 +324,129 @@ document.addEventListener('DOMContentLoaded', () => {
         return target?.closest?.('.cell') || null;
     }
 
+    function resetMeasurementSelection() {
+        if (measurementStartCell) {
+            measurementStartCell.classList.remove('measurement-start');
+        }
+        measurementStartCell = null;
+    }
+
+    function getMeasurementLayer() {
+        let layer = lawn.querySelector('.measurement-layer');
+        if (!layer) {
+            layer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            layer.classList.add('measurement-layer');
+            layer.setAttribute('aria-hidden', 'true');
+            lawn.appendChild(layer);
+        }
+
+        const width = lawn.clientWidth;
+        const height = lawn.clientHeight;
+        layer.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        layer.setAttribute('width', String(width));
+        layer.setAttribute('height', String(height));
+        return layer;
+    }
+
+    function getCellCenter(cell) {
+        return {
+            x: cell.offsetLeft + (cell.clientWidth / 2),
+            y: cell.offsetTop + (cell.clientHeight / 2)
+        };
+    }
+
+    function createMeasurementLine(startCell, endCell) {
+        const layer = getMeasurementLayer();
+        const start = getCellCenter(startCell);
+        const end = getCellCenter(endCell);
+        const deltaCols = Number(endCell.dataset.col) - Number(startCell.dataset.col);
+        const deltaRows = Number(endCell.dataset.row) - Number(startCell.dataset.row);
+        const distanceFeet = Math.hypot(deltaCols, deltaRows);
+        const midX = (start.x + end.x) / 2;
+        const midY = (start.y + end.y) / 2;
+
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.classList.add('measurement-item');
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(start.x));
+        line.setAttribute('y1', String(start.y));
+        line.setAttribute('x2', String(end.x));
+        line.setAttribute('y2', String(end.y));
+
+        const startDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        startDot.setAttribute('cx', String(start.x));
+        startDot.setAttribute('cy', String(start.y));
+        startDot.setAttribute('r', '3');
+
+        const endDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        endDot.setAttribute('cx', String(end.x));
+        endDot.setAttribute('cy', String(end.y));
+        endDot.setAttribute('r', '3');
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', String(midX));
+        label.setAttribute('y', String(midY - 6));
+        label.textContent = `${distanceFeet.toFixed(1)} ft`;
+
+        group.append(line, startDot, endDot, label);
+        layer.appendChild(group);
+    }
+
+    function clearMeasurements() {
+        const layer = lawn.querySelector('.measurement-layer');
+        if (layer) {
+            layer.innerHTML = '';
+        }
+        resetMeasurementSelection();
+    }
+
+    function setMeasurementMode(nextEnabled) {
+        measurementModeEnabled = nextEnabled;
+        measurementsBtn.classList.toggle('is-active', measurementModeEnabled);
+        measurementsBtn.textContent = measurementModeEnabled ? 'Exit Measure Mode' : 'Show Measurements';
+
+        if (!measurementModeEnabled) {
+            resetMeasurementSelection();
+        }
+    }
+
+    function handleMeasurementClick(cell) {
+        if (!measurementModeEnabled || !cell) {
+            return;
+        }
+
+        if (!measurementStartCell) {
+            measurementStartCell = cell;
+            measurementStartCell.classList.add('measurement-start');
+            return;
+        }
+
+        if (measurementStartCell === cell) {
+            resetMeasurementSelection();
+            return;
+        }
+
+        createMeasurementLine(measurementStartCell, cell);
+        resetMeasurementSelection();
+    }
+
+    function getPointerAction(event) {
+        if (paintBehavior === 'off') {
+            return null;
+        }
+
+        if (event.pointerType === 'mouse' && event.button === 2) {
+            return 'erase';
+        }
+
+        if (isMobileSafari) {
+            return currentMobileAction === 'place' ? 'paint' : 'erase';
+        }
+
+        return 'paint';
+    }
+
     function getPinchDistance(first, second) {
         return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
     }
@@ -356,15 +484,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     measurementsBtn.addEventListener('click', () => {
-        const measurementsVisible = document.body.classList.toggle('show-measurements');
-        measurementsBtn.textContent = measurementsVisible ? 'Hide Measurements' : 'Show Measurements';
+        setMeasurementMode(!measurementModeEnabled);
     });
 
-    loadLastDesignBtn.addEventListener('click', () => {
-        const loaded = loadGridFromCache();
-        if (!loaded) {
-            alert('No saved design found yet. Start drawing and it will save automatically.');
-        }
+    paintBehaviorInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            if (!input.checked) {
+                return;
+            }
+            paintBehavior = input.value;
+            pointerAction = null;
+        });
     });
 
     applyCanvasBtn.addEventListener('click', updateCanvasSize);
@@ -376,20 +506,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { passive: false });
 
     lawn.addEventListener('pointerdown', (event) => {
-        if (event.pointerType === 'mouse' && event.button === 2) {
-            pointerAction = 'erase';
-        } else if (isMobileSafari) {
-            pointerAction = currentMobileAction === 'place' ? 'paint' : 'erase';
-        } else {
-            pointerAction = 'paint';
+        const cell = readCellFromPointerEvent(event);
+
+        if (measurementModeEnabled) {
+            handleMeasurementClick(cell);
+            return;
+        }
+
+        pointerAction = getPointerAction(event);
+        if (!pointerAction) {
+            return;
         }
 
         lawn.setPointerCapture(event.pointerId);
-        applyPointerAction(readCellFromPointerEvent(event));
+        applyPointerAction(cell);
+
+        if (paintBehavior === 'single') {
+            saveGridToCache();
+            pointerAction = null;
+        }
     });
 
     lawn.addEventListener('pointermove', (event) => {
-        if (!pointerAction) {
+        if (!pointerAction || paintBehavior !== 'drag') {
             return;
         }
         applyPointerAction(readCellFromPointerEvent(event));
@@ -444,6 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearBtn.addEventListener('click', () => {
         const cells = lawn.querySelectorAll('.cell');
         cells.forEach((cell) => clearCell(cell));
+        clearMeasurements();
         saveGridToCache();
     });
 
@@ -522,6 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
     buildRulers();
     setCurrentMobileAction(currentMobileAction);
     setCurrentMaterial(currentMaterial);
+    setMeasurementMode(false);
     setZoom(1);
     syncExportButtonLocation();
     loadGridFromCache();

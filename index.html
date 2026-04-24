@@ -17,7 +17,7 @@
         <header class="ui-panel">
             <h1>Backyard Layout Designer</h1>
             <div class="instructions" id="instructions">
-                <p><kbd>Click / Drag</kbd> Paint selected material</p>
+                <p><kbd>Click / Drag</kbd> Paint selected material (based on paint mode)</p>
                 <p><kbd>Right Click / Erase</kbd> Remove from square</p>
                 <p><kbd>Scroll / Pinch</kbd> Zoom canvas</p>
             </div>
@@ -35,6 +35,15 @@
                     </label>
                 </div>
                 <button id="apply-canvas-btn">Apply Canvas Size</button>
+            </div>
+
+            <div class="panel-group">
+                <h2>Paint Behavior</h2>
+                <div class="paint-behavior-controls" role="radiogroup" aria-label="Paint behavior">
+                    <label><input type="radio" name="paint-behavior" value="drag" checked> Drag paint</label>
+                    <label><input type="radio" name="paint-behavior" value="single"> Single tile</label>
+                    <label><input type="radio" name="paint-behavior" value="off"> Zoom only (paint off)</label>
+                </div>
             </div>
 
             <div id="material-palette" class="material-palette" aria-label="Backyard material palette">
@@ -64,7 +73,6 @@
 
             <div class="button-group" id="desktop-controls">
                 <button id="measurements-btn">Show Measurements</button>
-                <button id="load-last-design-btn">Load Last Design</button>
                 <button id="export-btn" class="success-btn">Export Image</button>
                 <button id="clear-btn" class="danger-btn">Clear All</button>
             </div>
