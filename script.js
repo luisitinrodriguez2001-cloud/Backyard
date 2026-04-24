@@ -38,9 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleBackgroundControlsBtn = document.getElementById('toggle-background-controls-btn');
     const backgroundControls = document.getElementById('background-controls');
     const backgroundSelect = document.getElementById('background-select');
+    const toggleMaterialsBtn = document.getElementById('toggle-materials-btn');
+    const materialPalette = document.getElementById('material-palette');
 
     let currentMobileAction = 'place';
-    let currentMaterial = 'deck';
+    let currentMaterial = 'wood';
     let currentTextureSize = 'medium';
     let isMobileSafari = false;
     let gridCols = Number(canvasWidthInput.value);
@@ -265,8 +267,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateHistoryButtons() {
-        undoBtn.disabled = undoStack.length === 0;
-        redoBtn.disabled = redoStack.length === 0;
+        const canUndo = undoStack.length > 0;
+        const canRedo = redoStack.length > 0;
+        undoBtn.classList.toggle('is-disabled', !canUndo);
+        redoBtn.classList.toggle('is-disabled', !canRedo);
+        undoBtn.setAttribute('aria-disabled', String(!canUndo));
+        redoBtn.setAttribute('aria-disabled', String(!canRedo));
     }
 
     function pushUndoState() {
@@ -572,7 +578,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function setCanvasBackground(backgroundName) {
         currentBackground = backgroundName;
         gridShell.dataset.background = backgroundName;
+        lawn.dataset.background = backgroundName;
         backgroundSelect.value = backgroundName;
+        const selectedOption = backgroundSelect.options[backgroundSelect.selectedIndex];
+        if (selectedOption) {
+            toggleBackgroundControlsBtn.textContent = `Change Background (${selectedOption.text})`;
+        }
+    }
+
+    function setMaterialsVisibility(isVisible) {
+        materialPalette.classList.toggle('is-hidden', !isVisible);
+        toggleMaterialsBtn.textContent = isVisible ? 'Hide Materials' : 'Show Materials';
     }
 
     function setMeasurementMode(nextEnabled) {
@@ -711,7 +727,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     toggleBackgroundControlsBtn.addEventListener('click', () => {
-        backgroundControls.classList.toggle('is-hidden');
+        pushUndoState();
+        const options = Array.from(backgroundSelect.options).map((option) => option.value);
+        const currentIndex = options.indexOf(currentBackground);
+        const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % options.length : 0;
+        setCanvasBackground(options[nextIndex]);
+        saveGridToCache();
+        backgroundControls.classList.remove('is-hidden');
+    });
+
+    toggleMaterialsBtn.addEventListener('click', () => {
+        const isHidden = materialPalette.classList.contains('is-hidden');
+        setMaterialsVisibility(isHidden);
     });
 
     backgroundSelect.addEventListener('change', () => {
@@ -908,6 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
     buildRulers();
     setCurrentMobileAction(currentMobileAction);
     setCurrentMaterial(currentMaterial);
+    setMaterialsVisibility(false);
     setMeasurementMode(false);
     setZoom(1);
     setCanvasBackground(currentBackground);
