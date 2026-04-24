@@ -32,6 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvasWidthInput = document.getElementById('canvas-width');
     const canvasHeightInput = document.getElementById('canvas-height');
     const applyCanvasBtn = document.getElementById('apply-canvas-btn');
+    const placementWidthInput = document.getElementById('placement-width');
+    const placementHeightInput = document.getElementById('placement-height');
     const paintBehaviorInputs = document.querySelectorAll('input[name="paint-behavior"]');
     const tileCoverageInputs = document.querySelectorAll('input[name="tile-coverage"]');
     const customCoverageInputWrap = document.querySelector('.custom-coverage-input-wrap');
@@ -46,6 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const backgroundSelect = document.getElementById('background-select');
     const toggleMaterialsBtn = document.getElementById('toggle-materials-btn');
     const materialPalette = document.getElementById('material-palette');
+    const exportProgressWrap = document.getElementById('export-progress-wrap');
+    const exportProgress = document.getElementById('export-progress');
+    const importBtn = document.getElementById('import-btn');
+    const importFileInput = document.getElementById('import-file-input');
 
     let currentMobileAction = 'place';
     let currentMaterial = 'grass';
@@ -64,6 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let coveragePreset = '100';
     let customCoverageValue = 75;
     let fillOrigin = 'top';
+    let placementWidth = 1;
+    let placementHeight = 1;
     const undoStack = [];
     const redoStack = [];
 
@@ -475,6 +483,43 @@ document.addEventListener('DOMContentLoaded', () => {
         gridShell.style.setProperty('--grid-rows', gridRows);
     }
 
+    function normalizePlacementDimension(value) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) {
+            return 1;
+        }
+        return Math.max(1, Math.min(50, Math.round(parsed)));
+    }
+
+    function setPlacementSize(nextWidth, nextHeight) {
+        placementWidth = normalizePlacementDimension(nextWidth);
+        placementHeight = normalizePlacementDimension(nextHeight);
+        placementWidthInput.value = String(placementWidth);
+        placementHeightInput.value = String(placementHeight);
+    }
+
+    function getCellsInPlacementArea(startCell) {
+        if (!startCell) {
+            return [];
+        }
+        const startRow = Number(startCell.dataset.row);
+        const startCol = Number(startCell.dataset.col);
+        const maxCol = Math.min(gridCols, startCol + placementWidth - 1);
+        const maxRow = Math.min(gridRows, startRow + placementHeight - 1);
+        const areaCells = [];
+
+        for (let row = startRow; row <= maxRow; row++) {
+            for (let col = startCol; col <= maxCol; col++) {
+                const cell = lawn.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                if (cell) {
+                    areaCells.push(cell);
+                }
+            }
+        }
+
+        return areaCells;
+    }
+
     function getStateSnapshot() {
         return serializeGrid();
     }
@@ -594,6 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateCanvasSize() {
+        const previousState = getStateSnapshot();
         const nextCols = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(canvasWidthInput.value) || gridCols));
         const nextRows = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, Number(canvasHeightInput.value) || gridRows));
 
@@ -605,6 +651,35 @@ document.addEventListener('DOMContentLoaded', () => {
         applyGridSizing();
         buildGrid();
         buildRulers();
+
+        previousState.entries.forEach((entry) => {
+            const serializedEntry = parseSerializedEntry(entry);
+            if (!serializedEntry) {
+                return;
+            }
+            if (serializedEntry.col > nextCols || serializedEntry.row > nextRows) {
+                return;
+            }
+            const cell = lawn.querySelector(`.cell[data-row="${serializedEntry.row}"][data-col="${serializedEntry.col}"]`);
+            if (cell) {
+                hydrateCellWithLayers(cell, serializedEntry.layers);
+            }
+        });
+
+        previousState.measurements.forEach((measurement) => {
+            const withinBounds = measurement.startRow <= nextRows
+                && measurement.endRow <= nextRows
+                && measurement.startCol <= nextCols
+                && measurement.endCol <= nextCols;
+            if (withinBounds) {
+                createMeasurementLineByCoords(
+                    measurement.startRow,
+                    measurement.startCol,
+                    measurement.endRow,
+                    measurement.endCol
+                );
+            }
+        });
         saveGridToCache();
     }
 
@@ -655,9 +730,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const sizeSelection = SIZE_VARIANT_MATERIALS.has(currentMaterial) ? currentTextureSize : null;
-        paintMaterial(targetCell, currentMaterial, sizeSelection, {
-            coveragePercent: getCurrentCoveragePercent(),
-            origin: fillOrigin
+        const targetCells = getCellsInPlacementArea(targetCell);
+        targetCells.forEach((cell) => {
+            paintMaterial(cell, currentMaterial, sizeSelection, {
+                coveragePercent: getCurrentCoveragePercent(),
+                origin: fillOrigin
+            });
         });
     }
 
@@ -666,7 +744,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        clearCell(targetCell);
+        const targetCells = getCellsInPlacementArea(targetCell);
+        targetCells.forEach((cell) => clearCell(cell));
     }
 
     function applyPointerAction(cell) {
@@ -938,6 +1017,85 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function wait(ms) {
+        return new Promise((resolve) => {
+            window.setTimeout(resolve, ms);
+        });
+    }
+
+    function encodeDesignState(state) {
+        const json = JSON.stringify(state);
+        const encoded = btoa(unescape(encodeURIComponent(json)));
+        return `BYD1:${encoded}`;
+    }
+
+    function decodeDesignState(codeText) {
+        const trimmed = codeText.trim();
+        const payload = trimmed.startsWith('BYD1:') ? trimmed.slice(5) : trimmed;
+        const json = decodeURIComponent(escape(atob(payload)));
+        const parsed = JSON.parse(json);
+        if (!parsed || !Array.isArray(parsed.entries)) {
+            throw new Error('Invalid design code.');
+        }
+        return parsed;
+    }
+
+    async function runExportFlow() {
+        exportBtn.disabled = true;
+        exportBtn.textContent = 'Exporting...';
+        exportProgressWrap.classList.remove('is-hidden');
+        exportProgress.value = 10;
+        await wait(40);
+
+        const state = serializeGrid();
+        exportProgress.value = 45;
+        await wait(40);
+
+        const code = encodeDesignState(state);
+        exportProgress.value = 80;
+        await wait(40);
+
+        if (navigator.clipboard?.writeText) {
+            try {
+                await navigator.clipboard.writeText(code);
+            } catch (error) {
+                console.warn('Could not copy code to clipboard', error);
+            }
+        }
+
+        const blob = new Blob([code], { type: 'text/plain' });
+        const file = new File([blob], 'backyard-design-code.txt', { type: 'text/plain' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Backyard Design Code',
+                    text: code
+                });
+            } catch (error) {
+                console.log('Share canceled by user');
+            }
+        } else {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'backyard-design-code.txt';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            alert('Design code downloaded. Paste the code into a .txt file to import it later.');
+        }
+
+        exportProgress.value = 100;
+        await wait(150);
+        exportProgressWrap.classList.add('is-hidden');
+        exportProgress.value = 0;
+        exportBtn.textContent = 'Export Design Code';
+        exportBtn.disabled = false;
+    }
+
     applyMobileMode();
     bindMediaQueryChangeListener(mobileMediaQuery, applyMobileMode);
     bindMediaQueryChangeListener(mobileMediaQuery, syncExportButtonLocation);
@@ -1011,6 +1169,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     customCoverageInput.addEventListener('blur', () => {
         setCustomCoverageValue(customCoverageInput.value);
+    });
+
+    placementWidthInput.addEventListener('change', () => {
+        setPlacementSize(placementWidthInput.value, placementHeight);
+    });
+
+    placementHeightInput.addEventListener('change', () => {
+        setPlacementSize(placementWidth, placementHeightInput.value);
     });
 
     fillOriginInputs.forEach((input) => {
@@ -1176,72 +1342,38 @@ document.addEventListener('DOMContentLoaded', () => {
     redoBtn.addEventListener('click', redo);
 
     exportBtn.addEventListener('click', async () => {
-        exportBtn.textContent = 'Generating...';
-        exportBtn.disabled = true;
+        try {
+            await runExportFlow();
+        } catch (error) {
+            console.error('Error exporting design code:', error);
+            alert('Sorry, there was an issue exporting the design code.');
+            exportProgressWrap.classList.add('is-hidden');
+            exportProgress.value = 0;
+            exportBtn.textContent = 'Export Design Code';
+            exportBtn.disabled = false;
+        }
+    });
 
-        const exportWrapper = document.createElement('div');
-        exportWrapper.style.background = '#1e293b';
-        exportWrapper.style.padding = '32px';
-        exportWrapper.style.display = 'inline-flex';
-        exportWrapper.style.justifyContent = 'center';
-        exportWrapper.style.alignItems = 'center';
+    importBtn.addEventListener('click', () => {
+        importFileInput.click();
+    });
 
-        const clone = gridShell.cloneNode(true);
-        clone.style.maxWidth = 'none';
-        clone.style.maxHeight = 'none';
-        clone.style.overflow = 'visible';
-        clone.scrollTop = 0;
-        clone.scrollLeft = 0;
-        exportWrapper.appendChild(clone);
-        document.body.appendChild(exportWrapper);
+    importFileInput.addEventListener('change', async () => {
+        const [file] = importFileInput.files || [];
+        if (!file) {
+            return;
+        }
 
         try {
-            const canvas = await html2canvas(exportWrapper, {
-                scale: 2,
-                backgroundColor: '#1e293b'
-            });
-
-            canvas.toBlob(async (blob) => {
-                if (!blob) {
-                    exportBtn.textContent = 'Export Image';
-                    exportBtn.disabled = false;
-                    document.body.removeChild(exportWrapper);
-                    alert('Sorry, there was an issue exporting the image.');
-                    return;
-                }
-
-                const file = new File([blob], 'backyard-layout.png', { type: 'image/png' });
-
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    try {
-                        await navigator.share({
-                            files: [file],
-                            title: 'My Backyard Layout'
-                        });
-                    } catch (error) {
-                        console.log('Share canceled by user');
-                    }
-                } else {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'backyard-layout.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }
-
-                exportBtn.textContent = 'Export Image';
-                exportBtn.disabled = false;
-                document.body.removeChild(exportWrapper);
-            }, 'image/png');
+            const text = await file.text();
+            const importedState = decodeDesignState(text);
+            pushUndoState();
+            restoreState(importedState);
         } catch (error) {
-            console.error('Error exporting image:', error);
-            alert('Sorry, there was an issue exporting the image.');
-            exportBtn.textContent = 'Export Image';
-            exportBtn.disabled = false;
-            document.body.removeChild(exportWrapper);
+            console.error('Could not import design code:', error);
+            alert('The uploaded file does not contain a valid design code.');
+        } finally {
+            importFileInput.value = '';
         }
     });
 
@@ -1254,6 +1386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setCoveragePreset(coveragePreset);
     setCustomCoverageValue(customCoverageValue);
     setFillOrigin(fillOrigin);
+    setPlacementSize(placementWidth, placementHeight);
     setMaterialsVisibility(false);
     setMeasurementMode(false);
     setZoom(1);

@@ -116,6 +116,29 @@ button:active {
     margin-bottom: 0.5rem;
 }
 
+.placement-size-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.placement-size-controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.8rem;
+    color: #cbd5e1;
+}
+
+.placement-size-controls input {
+    width: 100%;
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+}
+
 .canvas-size-controls label {
     display: flex;
     flex-direction: column;
@@ -236,6 +259,25 @@ button:active {
 
 .is-hidden {
     display: none;
+}
+
+.import-export-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.export-progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    color: #bfdbfe;
+}
+
+.export-progress-wrap progress {
+    width: 100%;
+    height: 0.65rem;
 }
 
 .material-palette {
