@@ -17,7 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const lawn = document.getElementById('lawn');
     const gridShell = document.getElementById('grid-shell');
     const clearBtn = document.getElementById('clear-btn');
-    const exportBtn = document.getElementById('export-btn');
+    const shareCodeBtn = document.getElementById('share-code-btn');
+    const sharePngBtn = document.getElementById('share-png-btn');
+    const exportActions = document.getElementById('export-actions');
     const desktopControls = document.getElementById('desktop-controls');
     const mobileExportSlot = document.getElementById('mobile-export-slot');
     const mobileToolButtons = document.querySelectorAll('.mobile-tool-btn');
@@ -358,9 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function syncExportButtonLocation() {
         if (document.body.classList.contains('mobile-mode')) {
-            mobileExportSlot.appendChild(exportBtn);
+            mobileExportSlot.appendChild(exportActions);
         } else {
-            desktopControls.appendChild(exportBtn);
+            desktopControls.appendChild(exportActions);
         }
     }
 
@@ -1185,9 +1187,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return blob;
     }
 
-    async function runExportFlow() {
-        exportBtn.disabled = true;
-        exportBtn.textContent = 'Exporting...';
+    async function runExportFlow(action = 'code') {
+        const targetBtn = action === 'png' ? sharePngBtn : shareCodeBtn;
+        const idleLabel = action === 'png' ? 'Share PNG Preview' : 'Share Design Code';
+
+        shareCodeBtn.disabled = true;
+        sharePngBtn.disabled = true;
+        targetBtn.textContent = 'Preparing...';
         exportProgressWrap.classList.remove('is-hidden');
         exportProgress.value = 10;
         await wait(40);
@@ -1197,11 +1203,12 @@ document.addEventListener('DOMContentLoaded', () => {
         await wait(40);
 
         const code = encodeDesignState(state);
-        exportProgress.value = 80;
-        await wait(40);
-
-        const previewBlob = await buildDesignPreviewBlob(state);
-        const previewFile = new File([previewBlob], 'backyard-design-preview.png', { type: 'image/png' });
+        let previewBlob = null;
+        if (action === 'png') {
+            exportProgress.value = 70;
+            await wait(40);
+            previewBlob = await buildDesignPreviewBlob(state);
+        }
 
         if (navigator.clipboard?.writeText) {
             try {
@@ -1211,44 +1218,64 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const codeBlob = new Blob([code], { type: 'text/plain' });
-        const codeFile = new File([codeBlob], 'backyard-design-code.txt', { type: 'text/plain' });
-        const exportFiles = [codeFile, previewFile];
+        exportProgress.value = 80;
+        await wait(40);
 
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: exportFiles })) {
-            try {
-                await navigator.share({
-                    files: exportFiles,
-                    title: 'Backyard Design Export',
-                    text: code
-                });
-            } catch (error) {
-                console.log('Share canceled by user');
-            }
-        } else {
-            const downloads = [
-                { blob: codeBlob, name: 'backyard-design-code.txt' },
-                { blob: previewBlob, name: 'backyard-design-preview.png' }
-            ];
-            downloads.forEach(({ blob, name }) => {
-                const url = URL.createObjectURL(blob);
+        if (action === 'png' && previewBlob) {
+            const previewFile = new File([previewBlob], 'backyard-design-preview.png', { type: 'image/png' });
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [previewFile] })) {
+                try {
+                    await navigator.share({
+                        files: [previewFile],
+                        title: 'Backyard Design PNG Preview'
+                    });
+                } catch (error) {
+                    console.log('Share canceled by user');
+                }
+            } else {
+                const url = URL.createObjectURL(previewBlob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = name;
+                link.download = 'backyard-design-preview.png';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
-            });
-            alert('Design code and preview image downloaded.');
+                alert('PNG preview downloaded.');
+            }
+        } else {
+            const codeBlob = new Blob([code], { type: 'text/plain' });
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Backyard Design Code',
+                        text: code
+                    });
+                } catch (error) {
+                    console.log('Share canceled by user');
+                }
+            } else {
+                const url = URL.createObjectURL(codeBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'backyard-design-code.txt';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                alert('Design code downloaded.');
+            }
         }
 
         exportProgress.value = 100;
         await wait(150);
         exportProgressWrap.classList.add('is-hidden');
         exportProgress.value = 0;
-        exportBtn.textContent = 'Export Design Code';
-        exportBtn.disabled = false;
+        shareCodeBtn.textContent = 'Share Design Code';
+        sharePngBtn.textContent = 'Share PNG Preview';
+        targetBtn.textContent = idleLabel;
+        shareCodeBtn.disabled = false;
+        sharePngBtn.disabled = false;
     }
 
     applyMobileMode();
@@ -1496,16 +1523,33 @@ document.addEventListener('DOMContentLoaded', () => {
     undoBtn.addEventListener('click', undo);
     redoBtn.addEventListener('click', redo);
 
-    exportBtn.addEventListener('click', async () => {
+    shareCodeBtn.addEventListener('click', async () => {
         try {
-            await runExportFlow();
+            await runExportFlow('code');
         } catch (error) {
             console.error('Error exporting design code:', error);
             alert('Sorry, there was an issue exporting the design code.');
             exportProgressWrap.classList.add('is-hidden');
             exportProgress.value = 0;
-            exportBtn.textContent = 'Export Design Code';
-            exportBtn.disabled = false;
+            shareCodeBtn.textContent = 'Share Design Code';
+            sharePngBtn.textContent = 'Share PNG Preview';
+            shareCodeBtn.disabled = false;
+            sharePngBtn.disabled = false;
+        }
+    });
+
+    sharePngBtn.addEventListener('click', async () => {
+        try {
+            await runExportFlow('png');
+        } catch (error) {
+            console.error('Error exporting design PNG:', error);
+            alert('Sorry, there was an issue exporting the design PNG.');
+            exportProgressWrap.classList.add('is-hidden');
+            exportProgress.value = 0;
+            shareCodeBtn.textContent = 'Share Design Code';
+            sharePngBtn.textContent = 'Share PNG Preview';
+            shareCodeBtn.disabled = false;
+            sharePngBtn.disabled = false;
         }
     });
 
