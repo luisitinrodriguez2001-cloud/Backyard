@@ -38,6 +38,21 @@
             </div>
 
             <div class="panel-group">
+                <button id="background-toggle-btn">Change Background</button>
+                <div id="background-dropdown" class="background-dropdown is-hidden">
+                    <label>
+                        Canvas Background
+                        <select id="background-select">
+                            <option value="green" selected>Classic Green</option>
+                            <option value="sand">Sand</option>
+                            <option value="stone">Stone</option>
+                            <option value="night">Night</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <div class="panel-group">
                 <h2>Paint Behavior</h2>
                 <div class="paint-behavior-controls" role="radiogroup" aria-label="Paint behavior">
                     <label><input type="radio" name="paint-behavior" value="drag" checked> Drag paint</label>
@@ -72,7 +87,10 @@
             </div>
 
             <div class="button-group" id="desktop-controls">
+                <button id="undo-btn">Undo</button>
+                <button id="redo-btn">Redo</button>
                 <button id="measurements-btn">Show Measurements</button>
+                <button id="reset-measurements-btn">Reset Measurements Only</button>
                 <button id="export-btn" class="success-btn">Export Image</button>
                 <button id="clear-btn" class="danger-btn">Clear All</button>
             </div>
