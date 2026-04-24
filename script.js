@@ -1040,6 +1040,151 @@ document.addEventListener('DOMContentLoaded', () => {
         return parsed;
     }
 
+    function getBackgroundPalette(backgroundName) {
+        const palettes = {
+            grassyard: { base: '#2d4c1e', accentA: '#3a5e28', accentB: '#29461b' },
+            sandlot: { base: '#c7a86d', accentA: '#e6c892', accentB: '#8d6c3d' },
+            stonepatio: { base: '#7d8288', accentA: '#a6abb0', accentB: '#666b70' },
+            mulchbed: { base: '#5a3d27', accentA: '#7a5537', accentB: '#3d2819' },
+            waterbg: { base: '#0ea5e9', accentA: '#38bdf8', accentB: '#1d4ed8' },
+            snowfield: { base: '#e2e8f0', accentA: '#f8fafc', accentB: '#cbd5e1' },
+            wooddeckbg: { base: '#7c2d12', accentA: '#9a3412', accentB: '#431407' }
+        };
+
+        return palettes[backgroundName] || palettes.grassyard;
+    }
+
+    function getMaterialFill(material) {
+        const materialColors = {
+            grass: '#2f7d32',
+            turf: '#3f8f4b',
+            landscaping: '#6b3f1f',
+            sand: '#d4b06a',
+            gravel: '#9ca3af',
+            'river-rocks': '#6b7280',
+            flowers: '#db2777',
+            mulch: '#7c2d12',
+            deck: '#7c2d12',
+            wood: '#8b5a2b',
+            concrete: '#9ca3af',
+            pavers: '#8b7d6b',
+            brick: '#9f3c2f',
+            stone: '#6b7280',
+            asphalt: '#374151',
+            tile: '#cbd5e1',
+            plastic: '#4b5563',
+            'white-vinyl-fence': '#f8fafc',
+            door: '#92400e',
+            gazebo: '#94a3b8',
+            pergola: '#a16207',
+            'pool-tile': '#0ea5e9',
+            water: '#38bdf8',
+            'sprinkler-head': '#334155',
+            grill: '#1f2937',
+            firepit: '#b45309',
+            'solar-panel': '#1e3a8a',
+            'path-light': '#facc15',
+            bush: '#3f6212',
+            tree: '#166534',
+            palm: '#15803d',
+            cactus: '#65a30d',
+            succulent: '#10b981',
+            moss: '#4d7c0f',
+            frog: '#22c55e',
+            dog: '#92400e',
+            cat: '#a16207',
+            bird: '#2563eb',
+            butterfly: '#ec4899',
+            fish: '#0ea5e9',
+            bench: '#78350f',
+            statue: '#94a3b8',
+            'stepping-stones': '#6b7280',
+            planter: '#854d0e',
+            playground: '#dc2626',
+            fountain: '#38bdf8'
+        };
+
+        return materialColors[material] || '#475569';
+    }
+
+    function drawDesignBackground(ctx, width, height, backgroundName) {
+        const palette = getBackgroundPalette(backgroundName);
+        ctx.fillStyle = palette.base;
+        ctx.fillRect(0, 0, width, height);
+
+        const spacing = 24;
+        for (let y = 0; y < height + spacing; y += spacing) {
+            for (let x = 0; x < width + spacing; x += spacing) {
+                ctx.fillStyle = 'rgba(255,255,255,0.08)';
+                ctx.beginPath();
+                ctx.arc(x + 6, y + 6, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = palette.accentA;
+                ctx.fillRect(x + 12, y + 12, 2, 2);
+                ctx.fillStyle = palette.accentB;
+                ctx.fillRect(x + 16, y + 4, 1.5, 1.5);
+            }
+        }
+    }
+
+    async function buildDesignPreviewBlob(state) {
+        const exportCellSize = 24;
+        const width = state.cols * exportCellSize;
+        const height = state.rows * exportCellSize;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Canvas rendering unavailable');
+        }
+
+        drawDesignBackground(ctx, width, height, state.background || 'grassyard');
+
+        state.entries.forEach((entry) => {
+            const baseX = Number(entry.col) * exportCellSize;
+            const baseY = Number(entry.row) * exportCellSize;
+            const layers = Array.isArray(entry.layers) ? entry.layers.map(normalizeLayer).filter(Boolean) : [];
+
+            layers.forEach((layer) => {
+                const coveragePercent = normalizeCoveragePercent(layer.coveragePercent ?? 100);
+                const fillHeight = exportCellSize * (coveragePercent / 100);
+                let y = baseY;
+                if (layer.origin === 'bottom') {
+                    y = baseY + (exportCellSize - fillHeight);
+                } else if (layer.origin === 'center') {
+                    y = baseY + ((exportCellSize - fillHeight) / 2);
+                }
+                ctx.fillStyle = getMaterialFill(layer.material);
+                ctx.fillRect(baseX, y, exportCellSize, fillHeight);
+            });
+        });
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= width; x += exportCellSize) {
+            ctx.beginPath();
+            ctx.moveTo(x + 0.5, 0);
+            ctx.lineTo(x + 0.5, height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= height; y += exportCellSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y + 0.5);
+            ctx.lineTo(width, y + 0.5);
+            ctx.stroke();
+        }
+
+        const blob = await new Promise((resolve) => {
+            canvas.toBlob(resolve, 'image/png');
+        });
+        if (!blob) {
+            throw new Error('Could not generate design preview image');
+        }
+        return blob;
+    }
+
     async function runExportFlow() {
         exportBtn.disabled = true;
         exportBtn.textContent = 'Exporting...';
@@ -1055,6 +1200,9 @@ document.addEventListener('DOMContentLoaded', () => {
         exportProgress.value = 80;
         await wait(40);
 
+        const previewBlob = await buildDesignPreviewBlob(state);
+        const previewFile = new File([previewBlob], 'backyard-design-preview.png', { type: 'image/png' });
+
         if (navigator.clipboard?.writeText) {
             try {
                 await navigator.clipboard.writeText(code);
@@ -1063,29 +1211,36 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const blob = new Blob([code], { type: 'text/plain' });
-        const file = new File([blob], 'backyard-design-code.txt', { type: 'text/plain' });
+        const codeBlob = new Blob([code], { type: 'text/plain' });
+        const codeFile = new File([codeBlob], 'backyard-design-code.txt', { type: 'text/plain' });
+        const exportFiles = [codeFile, previewFile];
 
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: exportFiles })) {
             try {
                 await navigator.share({
-                    files: [file],
-                    title: 'Backyard Design Code',
+                    files: exportFiles,
+                    title: 'Backyard Design Export',
                     text: code
                 });
             } catch (error) {
                 console.log('Share canceled by user');
             }
         } else {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'backyard-design-code.txt';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            alert('Design code downloaded. Paste the code into a .txt file to import it later.');
+            const downloads = [
+                { blob: codeBlob, name: 'backyard-design-code.txt' },
+                { blob: previewBlob, name: 'backyard-design-preview.png' }
+            ];
+            downloads.forEach(({ blob, name }) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
+            alert('Design code and preview image downloaded.');
         }
 
         exportProgress.value = 100;
