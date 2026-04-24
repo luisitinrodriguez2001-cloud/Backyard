@@ -28,23 +28,14 @@
                 <div class="canvas-size-controls">
                     <label>
                         Width
-                        <input id="canvas-width" type="number" min="10" max="200" value="40">
+                        <input id="canvas-width" type="number" min="2" max="200" value="40">
                     </label>
                     <label>
                         Height
-                        <input id="canvas-height" type="number" min="10" max="200" value="60">
+                        <input id="canvas-height" type="number" min="2" max="200" value="60">
                     </label>
                 </div>
                 <button id="apply-canvas-btn">Apply Canvas Size</button>
-            </div>
-
-            <div class="panel-group">
-                <h2>Paint Behavior</h2>
-                <div class="paint-behavior-controls" role="radiogroup" aria-label="Paint behavior">
-                    <label><input type="radio" name="paint-behavior" value="drag" checked> Drag paint</label>
-                    <label><input type="radio" name="paint-behavior" value="single"> Single tile</label>
-                    <label><input type="radio" name="paint-behavior" value="off"> Zoom only (paint off)</label>
-                </div>
             </div>
 
             <div class="panel-group">
@@ -79,6 +70,9 @@
                         <option value="sandlot">Sand Lot</option>
                         <option value="stonepatio">Stone Patio</option>
                         <option value="mulchbed">Mulch Bed</option>
+                        <option value="waterbg">Water Background</option>
+                        <option value="snowfield">Snow Field</option>
+                        <option value="wooddeckbg">Wood Boards</option>
                     </select>
                 </div>
             </div>
@@ -90,27 +84,97 @@
 
             <div id="material-palette" class="material-palette is-hidden" aria-label="Backyard material palette">
                 <h2>Materials & Features</h2>
-                <div class="palette-grid">
-                    <button class="palette-btn" data-material="deck">Deck Tile</button>
-                    <button class="palette-btn" data-material="concrete">Concrete</button>
-                    <button class="palette-btn" data-material="grass">Grass</button>
-                    <button class="palette-btn" data-material="landscaping">Landscaping Bed</button>
-                    <button class="palette-btn" data-material="sand">Sand</button>
-                    <button class="palette-btn is-active" data-material="wood">Wood</button>
-                    <button class="palette-btn" data-material="pavers">Pavers</button>
-                    <button class="palette-btn" data-material="gravel">Gravel</button>
-                    <button class="palette-btn" data-material="water">Water</button>
-                    <button class="palette-btn" data-material="river-rocks">River Rocks</button>
-                    <button class="palette-btn" data-material="flowers">Flowers</button>
-                    <button class="palette-btn" data-material="bush">Bush</button>
-                    <button class="palette-btn" data-material="sprinkler-head">Sprinkler Head</button>
-                    <button class="palette-btn" data-material="grill">Grill</button>
-                    <button class="palette-btn" data-material="edging">Edging</button>
-                    <button class="palette-btn" data-material="plastic">Plastic Shed</button>
-                    <button class="palette-btn" data-material="turf">Artificial Turf</button>
-                    <button class="palette-btn" data-material="white-vinyl-fence">White Vinyl Fence (Top View)</button>
-                    <button class="palette-btn" data-material="door">Door (1 ft)</button>
+                <div class="material-category-tabs" role="tablist" aria-label="Material categories">
+                    <button class="category-btn is-active" data-category="landscaping" type="button">Landscaping</button>
+                    <button class="category-btn" data-category="construction" type="button">Construction</button>
+                    <button class="category-btn" data-category="structures" type="button">Structures</button>
+                    <button class="category-btn" data-category="utilities" type="button">Utilities</button>
+                    <button class="category-btn" data-category="plants" type="button">Plants</button>
+                    <button class="category-btn" data-category="animals" type="button">Animals</button>
+                    <button class="category-btn" data-category="decor" type="button">Decor</button>
                 </div>
+
+                <div class="material-category" data-category-panel="landscaping">
+                    <div class="palette-grid">
+                        <button class="palette-btn" data-material="grass">Grass</button>
+                        <button class="palette-btn" data-material="turf">Artificial Turf</button>
+                        <button class="palette-btn" data-material="landscaping">Landscaping Bed</button>
+                        <button class="palette-btn" data-material="sand">Sand</button>
+                        <button class="palette-btn" data-material="gravel">Gravel</button>
+                        <button class="palette-btn" data-material="river-rocks">River Rocks</button>
+                        <button class="palette-btn" data-material="flowers">Flowers</button>
+                        <button class="palette-btn" data-material="mulch">Mulch</button>
+                    </div>
+                </div>
+
+                <div class="material-category is-hidden" data-category-panel="construction">
+                    <div class="palette-grid">
+                        <button class="palette-btn" data-material="deck">Deck Tile</button>
+                        <button class="palette-btn" data-material="wood">Wood</button>
+                        <button class="palette-btn" data-material="concrete">Concrete</button>
+                        <button class="palette-btn" data-material="pavers">Pavers</button>
+                        <button class="palette-btn" data-material="brick">Brick</button>
+                        <button class="palette-btn" data-material="stone">Stone</button>
+                        <button class="palette-btn" data-material="asphalt">Asphalt</button>
+                        <button class="palette-btn" data-material="tile">Tile</button>
+                    </div>
+                </div>
+
+                <div class="material-category is-hidden" data-category-panel="structures">
+                    <div class="palette-grid">
+                        <button class="palette-btn" data-material="plastic">Plastic Shed</button>
+                        <button class="palette-btn" data-material="white-vinyl-fence">White Vinyl Fence (Top View)</button>
+                        <button class="palette-btn" data-material="door">Door (1 ft)</button>
+                        <button class="palette-btn" data-material="gazebo">Gazebo</button>
+                        <button class="palette-btn" data-material="pergola">Pergola</button>
+                        <button class="palette-btn" data-material="pool-tile">Pool Tile</button>
+                    </div>
+                </div>
+
+                <div class="material-category is-hidden" data-category-panel="utilities">
+                    <div class="palette-grid">
+                        <button class="palette-btn" data-material="water">Water</button>
+                        <button class="palette-btn" data-material="sprinkler-head">Sprinkler Head</button>
+                        <button class="palette-btn" data-material="grill">Grill</button>
+                        <button class="palette-btn" data-material="firepit">Fire Pit</button>
+                        <button class="palette-btn" data-material="solar-panel">Solar Panel</button>
+                        <button class="palette-btn" data-material="path-light">Path Light</button>
+                    </div>
+                </div>
+
+                <div class="material-category is-hidden" data-category-panel="plants">
+                    <div class="palette-grid">
+                        <button class="palette-btn" data-material="bush">Bush</button>
+                        <button class="palette-btn" data-material="tree">Tree</button>
+                        <button class="palette-btn" data-material="palm">Palm</button>
+                        <button class="palette-btn" data-material="cactus">Cactus</button>
+                        <button class="palette-btn" data-material="succulent">Succulent</button>
+                        <button class="palette-btn" data-material="moss">Moss</button>
+                    </div>
+                </div>
+
+                <div class="material-category is-hidden" data-category-panel="animals">
+                    <div class="palette-grid">
+                        <button class="palette-btn" data-material="frog">Frog</button>
+                        <button class="palette-btn" data-material="dog">Dog</button>
+                        <button class="palette-btn" data-material="cat">Cat</button>
+                        <button class="palette-btn" data-material="bird">Bird</button>
+                        <button class="palette-btn" data-material="butterfly">Butterfly</button>
+                        <button class="palette-btn" data-material="fish">Fish</button>
+                    </div>
+                </div>
+
+                <div class="material-category is-hidden" data-category-panel="decor">
+                    <div class="palette-grid">
+                        <button class="palette-btn" data-material="bench">Bench</button>
+                        <button class="palette-btn" data-material="statue">Statue</button>
+                        <button class="palette-btn" data-material="stepping-stones">Stepping Stones</button>
+                        <button class="palette-btn" data-material="planter">Planter</button>
+                        <button class="palette-btn" data-material="playground">Playground</button>
+                        <button class="palette-btn" data-material="fountain">Fountain</button>
+                    </div>
+                </div>
+
                 <div id="texture-size-controls" class="texture-size-controls is-hidden" aria-live="polite">
                     <h3 id="texture-size-title">Texture Size</h3>
                     <div class="texture-size-options">
@@ -132,6 +196,15 @@
         </header>
 
         <section class="workspace">
+            <div class="panel-group workspace-paint-behavior">
+                <h2>Paint Behavior</h2>
+                <div class="paint-behavior-controls" role="radiogroup" aria-label="Paint behavior">
+                    <label><input type="radio" name="paint-behavior" value="drag" checked> Drag paint</label>
+                    <label><input type="radio" name="paint-behavior" value="single"> Single tile</label>
+                    <label><input type="radio" name="paint-behavior" value="off"> Zoom only (paint off)</label>
+                </div>
+            </div>
+
             <div class="mobile-top-bar" aria-label="Mobile tile actions">
                 <button id="mobile-place-btn" class="mobile-tool-btn is-active" data-mode="place">Paint</button>
                 <button id="mobile-remove-btn" class="mobile-tool-btn" data-mode="remove">Erase</button>

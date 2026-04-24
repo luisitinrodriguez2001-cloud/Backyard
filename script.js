@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isMobileAppleDevice = /iPhone|iPad|iPod/.test(userAgent)
         || (/Macintosh/.test(userAgent) && hasTouchCapability);
 
-    const MIN_GRID_SIZE = 10;
+    const MIN_GRID_SIZE = 2;
     const MAX_GRID_SIZE = 200;
     const BASE_CELL_SIZE_DESKTOP = 18;
     const BASE_CELL_SIZE_MOBILE = 14;
@@ -21,7 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const desktopControls = document.getElementById('desktop-controls');
     const mobileExportSlot = document.getElementById('mobile-export-slot');
     const mobileToolButtons = document.querySelectorAll('.mobile-tool-btn');
-    const materialButtons = document.querySelectorAll('.palette-btn');
+    const categoryButtons = document.querySelectorAll('.category-btn');
+    const categoryPanels = document.querySelectorAll('.material-category');
     const textureSizeControls = document.getElementById('texture-size-controls');
     const textureSizeTitle = document.getElementById('texture-size-title');
     const textureSizeInputs = document.querySelectorAll('input[name="texture-size"]');
@@ -47,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const materialPalette = document.getElementById('material-palette');
 
     let currentMobileAction = 'place';
-    let currentMaterial = 'wood';
+    let currentMaterial = 'grass';
     let currentTextureSize = 'medium';
     let isMobileSafari = false;
     let gridCols = Number(canvasWidthInput.value);
@@ -83,8 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const MATERIAL_ALIASES = {
         'bush-round': 'bush',
         'bush-hedge': 'bush',
-        brick: 'edging',
-        'brick-edging': 'edging'
+        edging: 'brick',
+        'brick-edging': 'brick'
     };
 
     function normalizeMaterial(material) {
@@ -363,11 +364,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setCurrentMaterial(nextMaterial) {
-        currentMaterial = nextMaterial;
+        currentMaterial = normalizeMaterial(nextMaterial);
+        const materialButtons = document.querySelectorAll('.palette-btn');
         materialButtons.forEach((button) => {
-            button.classList.toggle('is-active', button.dataset.material === nextMaterial);
+            const buttonMaterial = normalizeMaterial(button.dataset.material);
+            button.classList.toggle('is-active', buttonMaterial === currentMaterial);
         });
         syncTextureSizeControls();
+    }
+
+    function setActiveMaterialCategory(categoryName) {
+        categoryButtons.forEach((button) => {
+            button.classList.toggle('is-active', button.dataset.category === categoryName);
+        });
+        categoryPanels.forEach((panel) => {
+            panel.classList.toggle('is-hidden', panel.dataset.categoryPanel !== categoryName);
+        });
     }
 
     function getCurrentCoveragePercent() {
@@ -657,6 +669,12 @@ document.addEventListener('DOMContentLoaded', () => {
             lawn.appendChild(layer);
         }
 
+        layer.style.zIndex = '9999';
+
+        if (!layer.parentElement || layer.parentElement !== lawn) {
+            lawn.appendChild(layer);
+        }
+
         const width = lawn.clientWidth;
         const height = lawn.clientHeight;
         layer.setAttribute('viewBox', `0 0 ${width} ${height}`);
@@ -869,7 +887,11 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => setCurrentMobileAction(button.dataset.mode));
     });
 
-    materialButtons.forEach((button) => {
+    categoryButtons.forEach((button) => {
+        button.addEventListener('click', () => setActiveMaterialCategory(button.dataset.category));
+    });
+
+    document.querySelectorAll('.palette-btn').forEach((button) => {
         button.addEventListener('click', () => setCurrentMaterial(button.dataset.material));
     });
 
@@ -905,7 +927,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    customCoverageInput.addEventListener('focus', () => {
+        setCoveragePreset('custom');
+    });
+
     customCoverageInput.addEventListener('input', () => {
+        setCoveragePreset('custom');
+        setCustomCoverageValue(customCoverageInput.value);
+    });
+
+    customCoverageInput.addEventListener('change', () => {
         setCoveragePreset('custom');
         setCustomCoverageValue(customCoverageInput.value);
     });
@@ -1136,6 +1167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     buildGrid();
     buildRulers();
     setCurrentMobileAction(currentMobileAction);
+    setActiveMaterialCategory('landscaping');
     setCurrentMaterial(currentMaterial);
     setCoveragePreset(coveragePreset);
     setCustomCoverageValue(customCoverageValue);
