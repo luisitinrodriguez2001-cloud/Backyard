@@ -265,6 +265,10 @@ button:active {
     box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
+.lawn-grid.is-panning {
+    cursor: grabbing;
+}
+
 .lawn-grid {
     position: relative;
 }
